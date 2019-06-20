@@ -6,6 +6,7 @@ unsigned short int SCREEN_HEIGHT = 720;
 
 bool lose = false;
 bool quit = false;
+bool restart = false;
 
 SDL_Renderer* renderer = nullptr;
 

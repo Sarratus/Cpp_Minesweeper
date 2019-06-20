@@ -25,6 +25,8 @@ void Init() {
 	if(renderer == nullptr)
 		std::cout << std::endl << "Renderer initialization failed. SDL Error: " << SDL_GetError();
 	
+	SDL_SetRenderDrawColor(renderer, 180, 180, 183, 255);
+
 	for (auto i = 0; i < 8; i++) {		
 		SDL_Color temp[8] = { {0, 0, 0}, {50, 80, 220}, {50, 160, 60}, {175, 40, 40}, {10, 20, 90}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
 		(numbers + i)->Init(to_string(i), *(temp + i), 50);

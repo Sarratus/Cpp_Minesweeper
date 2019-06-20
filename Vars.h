@@ -14,6 +14,7 @@ const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
 extern bool lose;
 extern bool quit;
+extern bool restart;
 
 extern SDL_Renderer* renderer;
 

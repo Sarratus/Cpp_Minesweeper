@@ -138,7 +138,7 @@ Playing_field::~Playing_field() {
 
 	SDL_Event e;
 
-	while (!quit) {
+	while (!quit && !restart) {
 		capTimer.start();
 
 		float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
@@ -149,7 +149,10 @@ Playing_field::~Playing_field() {
 		while (SDL_PollEvent(&e) != 0) {
 			if (e.type == SDL_QUIT) {
 				quit = true;
-			}			
+			}	
+			if (e.key.keysym.sym == SDLK_r) {
+				restart = true;
+			}
 		}
 
 		++countedFrames;
@@ -175,14 +178,18 @@ Playing_field::~Playing_field() {
 
 void Playing_field::Window_update() {
 	if (SCREEN_HEIGHT * 0.75 / height <= SCREEN_WIDTH * 0.9 / width) {
+		//cout << endl << "y is smaller";
+		
 		y = SCREEN_HEIGHT * 0.2;
 		cell_size = SCREEN_HEIGHT * 0.75 / height;
 		x = (-cell_size * width / 2) + (SCREEN_WIDTH / 2);
 	}
 	else {
+		//cout << endl << "x is smaller";
+		
 		x = SCREEN_WIDTH * 0.05;
 		cell_size = SCREEN_WIDTH * 0.9 / width;
-		y = SCREEN_HEIGHT * 0.2 - cell_size * height + SCREEN_HEIGHT - cell_size * height / 2 + SCREEN_HEIGHT / 2;
+		y = (SCREEN_HEIGHT * 0.2) - (cell_size * height / 2) + (SCREEN_HEIGHT * 0.75 / 2);
 	}
 }
 
@@ -201,15 +208,20 @@ void Playing_field::Show_mines_to_console() {
 }
 
 void Playing_field::Field_Render(bool render_numbers) {
-	main_render.lock();
-	
-	// Рендер каждой ячейки поля //
+	main_render.lock();	
 
 	SDL_RenderClear(renderer);
 	
+	// Рендер каждой ячейки поля //
+
 	for (auto i = 0; i < height; i++)
 		for (auto j = 0; j < width; j++)
 			Cell_Render(j, i, render_numbers);
+
+	SDL_Rect src = { 3, 0, 14, 20 };
+	SDL_Rect dst = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT * 0.15 };
+	
+	SDL_RenderCopy(renderer, textures, &src, &dst);
 	
 	SDL_RenderPresent(renderer);
 
