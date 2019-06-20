@@ -1,5 +1,5 @@
 {
-	"Width_of_playing_field": 10,
-	"Height_of_playing_field": 6,
-	"Number_of_mines": 17
+	"widthOfPlayingField": 9,
+	"heightOfPlayingField": 9,
+	"numberOfMines": 10
 }

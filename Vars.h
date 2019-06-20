@@ -1,16 +1,24 @@
 #pragma once
 
 #include <SDL.h>
-
+#include <mutex>
 
 using namespace std;
 
 //////////// œ≈–≈Ã≈ÕÕ€≈ //////////////////////////////////
 
-const unsigned short int SCREEN_WIDTH = 1280, SCREEN_HEIGHT = 720;
+extern unsigned short int SCREEN_WIDTH, SCREEN_HEIGHT;
+
+const int SCREEN_FPS = 30; 
+const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
+
+extern bool lose;
+extern bool quit;
 
 extern SDL_Renderer* renderer;
 
+extern mutex main_render;
+extern mutex shaded_render;
 
 //////////// ‘”Õ ÷»» /////////////////////////////////////
 
