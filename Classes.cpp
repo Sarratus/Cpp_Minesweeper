@@ -7,8 +7,6 @@
 
 using json = nlohmann::json;
 
-
-
 Playing_field::Playing_field() {
 
 	ifstream settings_file;
@@ -31,6 +29,9 @@ Playing_field::Playing_field() {
 	textures = Image_Load("assets\\textures.png");
 	shaded_textures = Image_Load("assets\\textures.png");
 
+	SDL_SetTextureBlendMode(shaded_textures, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(shaded_textures, 100);
+
 	if (textures == nullptr || shaded_textures == nullptr)
 		cout << endl << "Texture load error: " << SDL_GetError();
 
@@ -49,12 +50,12 @@ Playing_field::Playing_field() {
 
 	// »нициализаци€ массивов //
 
-	mines_and_numbers = new short int* [width];
+	mines_and_numbers = new signed char* [width];
 	open_cells = new bool* [width];
 	player_interaction = new bool* [width];
 
 	for (int i = 0; i < width; i++) {
-		*(mines_and_numbers + i) = new short int[height];
+		*(mines_and_numbers + i) = new signed char[height];
 		*(open_cells + i) = new bool[height];
 		*(player_interaction + i) = new bool[height];
 	}
@@ -145,13 +146,36 @@ Playing_field::~Playing_field() {
 		if (avgFPS > 1000) {
 			avgFPS = 0;
 		}		
-
+				
 		while (SDL_PollEvent(&e) != 0) {
 			if (e.type == SDL_QUIT) {
 				quit = true;
-			}	
+			}
+
 			if (e.key.keysym.sym == SDLK_r) {
 				restart = true;
+			}
+
+			if (e.key.type == SDL_KEYUP)
+				switch (e.key.keysym.sym)
+				{
+				case SDLK_BACKSPACE: {
+					Window_Fullscreen();
+					break;
+				}
+				}
+			
+			switch (e.window.event) {
+			case SDL_WINDOWEVENT_SIZE_CHANGED: {
+
+				SCREEN_WIDTH = e.window.data1;
+				SCREEN_HEIGHT = e.window.data2;
+
+				Window_update();
+				Field_Render(false);
+
+				break;
+			}
 			}
 		}
 
@@ -194,6 +218,8 @@ void Playing_field::Window_update() {
 }
 
 void Playing_field::Show_mines_to_console() {
+	// ¬ывод значений всех €чеек пол€ в консоль //
+	
 	cout << endl << "Playing field: " << endl;
 	for (int i = 0; i < height; i++)
 		for (int j = 0; j < width; j++) {
@@ -212,21 +238,52 @@ void Playing_field::Field_Render(bool render_numbers) {
 
 	SDL_RenderClear(renderer);
 	
-	// –ендер каждой €чейки пол€ //
+	// UI рендерер //
+		// –ендер каждой €чейки пол€ //
 
 	for (auto i = 0; i < height; i++)
 		for (auto j = 0; j < width; j++)
 			Cell_Render(j, i, render_numbers);
 
+		// –ендер верхней панели //
+
 	SDL_Rect src = { 3, 0, 14, 20 };
 	SDL_Rect dst = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT * 0.15 };
 	
 	SDL_RenderCopy(renderer, textures, &src, &dst);
+
+		// –ендер счЄтчика оставшихс€ бомб //
+
+	src = { 20, 0, 20, 20 };
+	dst = { x+ int(SCREEN_HEIGHT * 0.16 / 2), int(SCREEN_HEIGHT * 0.15 / 4), int(SCREEN_HEIGHT * 0.15 / 2 * (number_of_mines - number_of_flags > 99 ? 3 : 2)), int(SCREEN_HEIGHT * 0.15 / 2) };
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
+
+	Numbers_Renderer(number_of_mines - number_of_flags, &dst);
+
+	src.x = 60;
+	dst.x = x; dst.w = dst.h;
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
+
+	// –ендер выделени€ клеток дл€ геймпада //
+
+	if (!keyboard)
+		Cell_Lighter(x_cell_controller, y_cell_controller);
+
+	/*int x_pos, y_pos;
+	SDL_GetMouseState(&x_pos, &y_pos);
+	
+	if (x_pos >= x && y_pos >= y) {
+		
+		Cell_Lighter((x_pos - x) / cell_size, (y_pos - y) / cell_size);
+	}*/		
 	
 	SDL_RenderPresent(renderer);
 
 	main_render.unlock();
 }
+
 
 void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 	SDL_Rect dst = { x + pos_x * cell_size, y + pos_y * cell_size, cell_size, cell_size };
@@ -261,64 +318,47 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 		}*/
 }
 
-void Playing_field::Opening_Animation(int x_pos, int y_pos) {
-	LTimer controller;
-	controller.start();
-
-	float opening_speed = 255 / 500;
-
-	SDL_Rect dst = { x+x_pos*cell_size, y+y_pos*cell_size, cell_size, cell_size };
-	SDL_Rect src = { 0, 0, 20, 20 };
-
-	while (int(opening_speed * controller.getTicks()) <= 255) {
-		shaded_render.lock();
-		
-		SDL_SetTextureAlphaMod(shaded_textures, int(opening_speed * controller.getTicks()));
-		SDL_RenderCopy(renderer, shaded_textures, &src, &dst);
-
-		shaded_render.unlock();
-	}
-
-	controller.stop();
-	SDL_SetTextureAlphaMod(shaded_textures, 255);
-}
-
 void Playing_field::Cell_Opening(int x_pos, int y_pos) {
 	
 	//  лик на мину => проигрыш //
-	
-	if (mines_and_numbers[x_pos][y_pos] == -1) {
-		lose = true;
-		return;
+	if (player_interaction[x_pos][y_pos] == false) {
+		if (mines_and_numbers[x_pos][y_pos] == -1) {
+			lose = true;
+			return;
+		}
+
+		// ќткрытие €чейки и проигрывание анимации //
+
+		if (open_cells[x_pos][y_pos] == false) {
+			open_cells[x_pos][y_pos] = true;
+			//Opening_Animation(x_pos, y_pos);
+		}
+
+		// ќткрытие прилегающий клеток, если р€дом с текущей клеткой нет бомб //
+
+		if (mines_and_numbers[x_pos][y_pos] == 0) {
+
+			int arrayLOL[8][2] = { {-1,-1},	{0,-1},	{1,-1},		{-1,0}, {1,0},		 {-1,1},		{0,1},			{1,1} };
+			int arrayKEK[8][2] = { {0,0},	{-2,0}, {width - 1,0},	{0,-2}, {width - 1,-2},	 {0,height - 1},	{-2,height - 1},	{width - 1,height - 1} };
+
+			for (int k = 0; k < 8; k++)
+				if (x_pos != arrayKEK[k][0] && y_pos != arrayKEK[k][1])
+					if (open_cells[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] == false)
+						if (mines_and_numbers[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] != -1)
+							Cell_Opening(x_pos + arrayLOL[k][0], y_pos + arrayLOL[k][1]);
+		}
 	}
-	
-	// ќткрытие €чейки и проигрывание анимации //
-
-	if (open_cells[x_pos][y_pos] == false) {
-		open_cells[x_pos][y_pos] =  true;
-		//Opening_Animation(x_pos, y_pos);
-	}	
-
-	// ќткрытие прилегающий клеток, если р€дом с текущей клеткой нет бомб //
-
-	if (mines_and_numbers[x_pos][y_pos] == 0) {
-		
-		int arrayLOL[8][2] = { {-1,-1},	{0,-1},	{1,-1},		{-1,0}, {1,0},		 {-1,1},		{0,1},			{1,1} };
-		int arrayKEK[8][2] = { {0,0},	{-2,0}, {width - 1,0},	{0,-2}, {width - 1,-2},	 {0,height - 1},	{-2,height - 1},	{width - 1,height - 1} };
-
-		for (int k = 0; k < 8; k++)
-			if (x_pos != arrayKEK[k][0] && y_pos != arrayKEK[k][1])
-				if (open_cells[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] == false)
-					if (mines_and_numbers[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]]  != -1)
-						Cell_Opening(x_pos + arrayLOL[k][0], y_pos + arrayLOL[k][1]);
-	}				
 }
 
 void Playing_field::Flag_setter(int x_pos, int y_pos) {
+	// ”становка флага //
+	
 	if (player_interaction[x_pos][y_pos] == false) {
 		player_interaction[x_pos][y_pos] = true;
+		++number_of_flags;
 	} else {
 		player_interaction[x_pos][y_pos] = false;
+		--number_of_flags;
 	}	
 }
 
@@ -335,8 +375,7 @@ void Playing_field::Left_Click() {
 			x_pos = (x_pos - x) / cell_size;
 			y_pos = (y_pos - y) / cell_size;
 			
-			if (player_interaction[x_pos][y_pos] == false)
-				Cell_Opening(x_pos, y_pos);
+			Cell_Opening(x_pos, y_pos);
 		}
 }
 
@@ -355,6 +394,47 @@ void Playing_field::Right_Click() {
 
 			Flag_setter(x_pos, y_pos);
 		}
+}
+
+void Playing_field::Cell_Lighter(int x_pos, int y_pos) {
+	SDL_Rect src = { 47, 7, 6, 6 };
+	SDL_Rect dst = { x+x_pos*cell_size, y+y_pos*cell_size, cell_size, cell_size };
+
+	SDL_RenderCopy(renderer, shaded_textures, &src, &dst);
+}
+
+void Playing_field::Gamepad_Control(Uint8 button) {
+	switch (button)
+	{
+	case SDL_CONTROLLER_BUTTON_DPAD_UP: {
+		if (y_cell_controller > 0)
+			--y_cell_controller;
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_DPAD_DOWN: {
+		if (y_cell_controller < height)
+			++y_cell_controller;
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_DPAD_LEFT: {
+		if (x_cell_controller > 0)
+			--x_cell_controller;
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: {
+		if (x_cell_controller < height)
+			++x_cell_controller;
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_A: {
+		Cell_Opening(x_cell_controller, y_cell_controller);
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_X: {
+		Flag_setter(x_cell_controller, y_cell_controller);
+		break;
+	}
+	}
 }
 
 

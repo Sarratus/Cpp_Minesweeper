@@ -8,9 +8,13 @@ bool lose = false;
 bool quit = false;
 bool restart = false;
 
+bool keyboard = true;
+
 SDL_Renderer* renderer = nullptr;
+SDL_Window* window = nullptr;
 
 mutex main_render;
 mutex shaded_render;
 
-Text_render* numbers = new Text_render[8];
+Text_render* numbers = new Text_render[5];
+Text_render* black_numbers = new Text_render[10];
