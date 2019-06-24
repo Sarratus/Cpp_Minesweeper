@@ -15,6 +15,7 @@ constexpr int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 extern bool lose;
 extern bool quit;
 extern bool restart;
+extern bool start;
 
 extern bool keyboard;
 
@@ -36,3 +37,4 @@ int Generate_Random_Int(int, int);
 void Window_Fullscreen();
 
 void Numbers_Renderer(int, SDL_Rect*);
+void Letter_Renderer(string str, SDL_Rect* dst);

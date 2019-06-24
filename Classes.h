@@ -2,12 +2,29 @@
 
 #include <iostream>
 #include <string>
-#include <atomic>
+#include <vector>
 #include "Vars.h"
 
 class Text_render;
 extern Text_render* numbers;
 extern Text_render* black_numbers;
+extern Text_render* alphabet;
+
+enum Game_Menu {
+
+	Window_title = 0,
+
+	Menu_item_1,
+	Menu_item_2,
+	Menu_item_3,
+
+	Main_Menu = 10,
+	Play,
+	Settings,
+	Exit,
+
+	nothing = 100
+};
 
 class Menu
 {
@@ -25,8 +42,23 @@ public:
 
 	void Start_game();
 
-private:
+	//void Click(function<void> func(int, int));
 
+	void Menu_Navigation(int x_pos, int y_pos);
+
+private:
+	void Main_Menu_Renderer();
+
+	int x = NULL, y = NULL;
+	int width = NULL, height = NULL;
+	int item_height = NULL, item_width = NULL;
+
+	Game_Menu over_item;
+	Game_Menu item;
+
+	SDL_Texture* textures = nullptr;
+
+	vector<Text_render> titles;
 };
 
 class Playing_field
@@ -44,17 +76,19 @@ public:
 
 	void Keyboard_Control(SDL_Keycode button);
 	void Mouse_Control(Uint8 button);
-
+		
 private:
 	//void Opening_Animation(int x_pos, int y_pos);
 	void Cell_Render(int pos_x, int pos_y, bool render_numbers);
-	void Cell_Opening(int x_pos, int y_pos);
 	void Cell_Lighter(int x_pos, int y_pos);
+	
+	void Cell_Opening(int x_pos, int y_pos);
+	void Flag_setter(int x_pos, int y_pos);
 
 	void Left_Click();
 	void Right_Click();
-	
-	void Flag_setter(int x_pos, int y_pos);
+
+	void Win();
 
 	signed char**	mines_and_numbers	=	nullptr;
 	bool**	open_cells		=	nullptr;
@@ -84,13 +118,18 @@ class Text_render
 {
 public:	
 	~Text_render();
-	
+	Text_render(string text, SDL_Color text_color, int size);
+	Text_render() {};
+
 	void Init(string text, SDL_Color text_color, int size);
 	
 	SDL_Texture* texture = nullptr;
+
+	string original_text;
+
 private:	
 	SDL_Color color = { 0, 0, 0 };
-	string original_text;
+	
 	int width = NULL;
 	int height = NULL;
 

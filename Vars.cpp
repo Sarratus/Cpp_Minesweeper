@@ -7,6 +7,7 @@ unsigned short int SCREEN_HEIGHT = 720;
 bool lose = false;
 bool quit = false;
 bool restart = false;
+bool start = false;
 
 bool keyboard = true;
 
@@ -18,3 +19,4 @@ mutex shaded_render;
 
 Text_render* numbers = new Text_render[5];
 Text_render* black_numbers = new Text_render[10];
+Text_render* alphabet = new Text_render[78];

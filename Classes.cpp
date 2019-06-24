@@ -5,25 +5,156 @@
 #include <fstream>
 #include <chrono>
 
+
 using json = nlohmann::json;
 
 /////////////////////// Menu ///////////////////////////////
 
 
 Menu::Menu() {
+	textures = Image_Load("assets\\textures.png");
+	
+	SDL_Color text_color = { 40, 40, 45 };
+	Text_render minesweeper("Minesweeper", text_color, 50);
+	titles.push_back(minesweeper);
+	//minesweeper.~Text_render();
+	
 
+
+	item = Main_Menu;
 }
 
 Menu::~Menu() {
-
+	for (auto& text_texture : titles)
+		text_texture.~Text_render();
 }
 
 void Menu::Menu_renderer() {
+	
+	SDL_RenderClear(renderer);
+	
+	SDL_Rect src;
+	SDL_Rect dst;
 
+	dst = { int(SCREEN_WIDTH * 0.035), int(SCREEN_HEIGHT * 0.945), int(SCREEN_HEIGHT * 0.03 * 6), int(SCREEN_HEIGHT * 0.03) };
+	src = { 20, 0, 20, 20 };
+	
+	//SDL_RenderCopy(renderer, textures, &src, &dst);
+	
+	Letter_Renderer("by Lis", &dst);	
+
+	switch (item)
+	{
+	case Main_Menu: {
+		Main_Menu_Renderer();				
+
+		break;
+	}
+	case Play: {
+		start = true;
+
+		break;
+	}
+	case Settings: {
+		break;
+	}
+	case Exit: {
+		quit = true;
+		this->~Menu();
+		break;
+	}
+	default:
+		cout << endl << "Menu error (wrong item)";
+		break;
+	}
+
+	SDL_RenderPresent(renderer);
+}
+
+void Menu::Main_Menu_Renderer() {
+	SDL_Rect dst;
+	SDL_Rect dst_text;
+	SDL_Rect src;
+
+	int x, y;
+	SDL_GetMouseState(&x, &y);
+	
+	
+
+	// Генерация надписи //
+	src = { 23, 0, 14, 20 };
+	dst = { 0, int(SCREEN_HEIGHT / 4 - SCREEN_WIDTH * 0.8 / 11 / 1.2), SCREEN_WIDTH, int(SCREEN_WIDTH * 0.8 / titles[Window_title].original_text.size() * 1.55) };
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
+
+	dst = { int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT / 4 - SCREEN_WIDTH * 0.8 / 11 / 2), int(SCREEN_WIDTH * 0.8), int(SCREEN_WIDTH * 0.8 / titles[Window_title].original_text.size()) };
+
+	Letter_Renderer("Minesweeper", &dst);
+	
+	// Генерация кнопок //
+		// Играть //
+			// Кнопка //
+	dst = { int(SCREEN_WIDTH / 3.18), SCREEN_HEIGHT / 2, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 6 };
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h) { src = { 20, 0, 20, 20 }; over_item = Play; }
+	else { src = { 0, 0, 20, 20 }; over_item = nothing;  }
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
+
+			// Текст //
+	dst_text.x = dst.x + int(dst.h * 1.05);
+	dst_text.y = dst.y + int(dst.h / 3);
+	dst_text.w = dst.w - dst.h * 2;
+	dst_text.h = dst.h - int(dst.h / 2);
+
+	Letter_Renderer("Play", &dst_text);
+
+		// Настройки //
+			// Кнопка //
+	dst.y += SCREEN_HEIGHT / 6;
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h) { src = { 20, 0, 20, 20 }; over_item = Settings; }
+	else { src = { 0, 0, 20, 20 }; }
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
+		
+			// Текст //
+	dst_text.x = dst.x + int(dst.h / 1.75);
+	dst_text.y = dst.y + int(dst.h / 2.5);
+	dst_text.w = dst.w - int(dst.h / 1.9 * 2);
+	dst_text.h = dst.h - int(dst.h / 3 * 2);
+
+	Letter_Renderer("Settings", &dst_text);
+
+		// Выход //
+	dst.x += dst.w;
+	dst.w = dst.h;
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h) { src = { 20, 0, 20, 20 }; over_item = Exit; }
+	else { src = { 0, 0, 20, 20 }; }
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
+	
+		// Мина на кнопке выхода //
+	src = { 60, 0, 20, 20 };
+
+	SDL_RenderCopy(renderer, textures, &src, &dst);
 }
 
 void Menu::Window_update() {
+	
+	if (SCREEN_HEIGHT / SCREEN_WIDTH <= 2.1 && SCREEN_WIDTH / SCREEN_HEIGHT <= 2.1)
+	if (SCREEN_HEIGHT / 3  <= SCREEN_WIDTH / 3) {
+		//cout << endl << "y is smaller";
 
+		y = SCREEN_HEIGHT / 3;
+		//cell_size = SCREEN_HEIGHT * 0.75 / height;
+		//x = (-cell_size * width / 2) + (SCREEN_WIDTH / 2);
+	}
+	else {
+		//cout << endl << "x is smaller";
+
+		x = SCREEN_WIDTH / 3;
+		//cell_size = SCREEN_WIDTH * 0.9 / width;
+		//y = (SCREEN_HEIGHT * 0.2) - (cell_size * height / 2) + (SCREEN_HEIGHT * 0.75 / 2);
+	}
 }
 
 void Menu::Gamepad_Control(Uint8 button) {
@@ -35,23 +166,47 @@ void Menu::Keyboard_Control(SDL_Keycode button) {
 }
 
 void Menu::Mouse_Control(Uint8 button) {
-
+	switch (over_item)
+	{
+	case Play: {
+		if (button == SDL_BUTTON_LEFT)
+			item = Play;
+		break;
+	}
+	case Settings: {
+		if (button == SDL_BUTTON_LEFT)
+			item = Settings;
+		break;
+	}
+	case Exit: {
+		if (button == SDL_BUTTON_LEFT) 
+			quit = true;		
+		break;
+	}
+	default:
+		cout << endl << "Menu error (wrong item)";
+		break;
+	}	
 }
 
+void Menu::Menu_Navigation(int x_pos, int y_pos) {
+	if (keyboard)
+		item = over_item;	
+}
+
+//void Menu::Click(function<void> func(int, int)) {
+//	// Получение координат мыши //
+//
+//	int x_pos = 0, y_pos = 0;
+//	SDL_GetMouseState(&x_pos, &y_pos);
+//	func(x_pos, y_pos);
+//}
+
 void Menu::Start_game() {
-
-RESTART:
-
-	restart = false;
-	lose = false;
-
-	Playing_field* field = new Playing_field;
-	field->Field_Render(true);
-
+	
 	LTimer fpsTimer;
 	LTimer capTimer;
 
-	int countedFrames = 0;
 	fpsTimer.start();
 
 	SDL_GameController* game_controller = nullptr;
@@ -59,11 +214,86 @@ RESTART:
 	if (game_controller == nullptr)
 		cout << endl << "Controller load error: " << SDL_GetError();
 
-	//SDL_JoystickEventState(SDL_ENABLE);
-
+	int countedFrames = 0;
 
 	SDL_Event e;
 
+	while (!quit && !start) {
+		capTimer.start();
+
+		float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
+		if (avgFPS > 1000) {
+			avgFPS = 0;
+		}		
+
+		this->Menu_renderer();
+		
+		while (SDL_PollEvent(&e) != 0) {
+
+			// Общие ивенты //
+			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+				SCREEN_WIDTH = e.window.data1;
+				SCREEN_HEIGHT = e.window.data2;
+
+				this->Window_update();
+				this->Menu_renderer();
+
+				break;
+			}
+			if (e.type == SDL_QUIT)
+				quit = true;
+
+			// Проверка нажатий клавиатуры //
+			if (keyboard) {
+				if (e.cdevice.type == SDL_CONTROLLERDEVICEADDED) {
+					if (game_controller == nullptr)
+						game_controller = SDL_GameControllerOpen(0);
+					keyboard = false;
+				}
+
+				if (e.cbutton.type == SDL_CONTROLLERBUTTONUP)
+					keyboard = false;
+
+				if (e.key.type == SDL_KEYUP)
+					this->Keyboard_Control(e.key.keysym.sym);
+
+				if (e.button.type == SDL_MOUSEBUTTONUP) {
+					this->Mouse_Control(e.button.button);
+				}
+				// Проверка нажатий геймпада //
+			}
+			else {
+				if (e.key.type == SDL_KEYUP)
+					keyboard = true;
+
+				if (e.cbutton.type == SDL_CONTROLLERBUTTONDOWN)
+					this->Gamepad_Control(e.cbutton.button);
+			}
+		}
+		++countedFrames;
+
+		int frameTicks = capTimer.getTicks();
+		if (frameTicks < SCREEN_TICKS_PER_FRAME) {
+			SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
+		}
+	}
+
+	fpsTimer.stop();
+	capTimer.stop();
+
+RESTART:
+
+	restart = false;
+	lose = false;
+
+	Playing_field* field = new Playing_field;
+
+	if (!quit)
+		field->Field_Render(true);	
+
+	countedFrames = 0;
+	fpsTimer.start();
+		
 	while (!quit && !lose) {
 		capTimer.start();
 
@@ -140,7 +370,7 @@ RESTART:
 }
 
 
-///////////////////// Playing_field ////////////////////////
+///////////////////// Playing_field ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 Playing_field::Playing_field() {
@@ -217,7 +447,7 @@ Playing_field::Playing_field() {
 
 			for (auto j = 0; j < width; j++) {
 				if (Generate_Random_Int(0, 200) <= ((number_of_mines * 100 * 1.92) / (width * height)) && mines_and_numbers[j][i] != -1) {
-					if (temp2 > number_of_mines / height * 1.6)
+					if (temp2 > number_of_mines / height * 1.5)
 						break;
 					mines_and_numbers[j][i] = -1;
 					temp -= 1;
@@ -341,6 +571,7 @@ void Playing_field::Window_update() {
 	
 	// Установка размеров пользовательского интерфейса для текущего размера окна //
 	
+	if (SCREEN_HEIGHT / SCREEN_WIDTH <= 2.1 && SCREEN_WIDTH / SCREEN_HEIGHT <= 2.1)
 	if (SCREEN_HEIGHT * 0.75 / height <= SCREEN_WIDTH * 0.9 / width) {
 		//cout << endl << "y is smaller";
 		
@@ -503,13 +734,51 @@ void Playing_field::Cell_Opening(int x_pos, int y_pos) {
 void Playing_field::Flag_setter(int x_pos, int y_pos) {
 	// Установка флага //
 		
-	if (player_interaction[x_pos][y_pos] == false && open_cells[x_pos][y_pos] == false) {
+	if (player_interaction[x_pos][y_pos] == false && open_cells[x_pos][y_pos] == false && number_of_mines - number_of_flags > 0) {
 		player_interaction[x_pos][y_pos] = true;
 		++number_of_flags;
 	} else if (*(*(player_interaction + x_pos) + y_pos) == true && *(*(open_cells + x_pos) + y_pos) == false) {
 		player_interaction[x_pos][y_pos] = false;
 		--number_of_flags;
 	}
+
+	if (number_of_mines - number_of_flags >= 0) {
+		for (auto i = 0; i < height; i++)
+			for (auto j = 0; j < width; j++) {
+				if (*(*(mines_and_numbers + j) + i) == -1 && *(*(player_interaction + j) + i) == true) {}
+				else { goto EXIT; }
+			}
+		Win();
+
+		EXIT:;
+	}
+}
+
+void Playing_field::Win() {
+	Field_Render(true);
+	SDL_Color win_color = { 200, 200, 200 };
+	Text_render win("You are win!", win_color, 50);
+	//win.Init("You are win!", win_color, 50);
+	SDL_Rect dst = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, SCREEN_WIDTH / 2 / 12 };
+	SDL_RenderCopy(renderer, win.texture, NULL, &dst);
+
+	SDL_Event e;
+	while (SDL_PollEvent(&e) != 0) {
+
+		// Общие ивенты //
+		if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+			SCREEN_WIDTH = e.window.data1;
+			SCREEN_HEIGHT = e.window.data2;
+
+			Window_update();
+			Field_Render(true);
+
+			break;
+		}
+		if (e.type == SDL_QUIT)
+			quit = true;
+	}
+
 }
 
 void Playing_field::Left_Click() {
@@ -611,6 +880,32 @@ void Playing_field::Mouse_Control(Uint8 button) {
 
 
 void Text_render::Init(string str, SDL_Color text_color, int size) {
+	TTF_Font* Sans = nullptr;
+	original_text = str;
+	color = text_color;
+	height = size;
+	width = size * str.length();
+	
+	Sans = TTF_OpenFont("assets\\Game_Sans.ttf", 26);
+
+	if (Sans == nullptr)
+		cout << endl << "Sans load error: " << SDL_GetError();
+
+	SDL_Surface* message_surface = nullptr;
+	message_surface = TTF_RenderText_Blended(Sans, str.c_str(), text_color);
+
+	if (message_surface == nullptr)
+		cout << endl << "Text surface creating error: " << SDL_GetError();
+
+	texture = SDL_CreateTextureFromSurface(renderer, message_surface);
+	if (texture == nullptr)
+		cout << endl << "Text texture creating error: " << SDL_GetError();
+
+	SDL_FreeSurface(message_surface);
+	TTF_CloseFont(Sans);
+}
+
+Text_render::Text_render(string str, SDL_Color text_color, int size) {
 	TTF_Font* Sans = nullptr;
 	original_text = str;
 	color = text_color;

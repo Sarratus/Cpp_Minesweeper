@@ -21,7 +21,7 @@ SDL_Texture* Image_Load(const char* image) {
 		if (load_image == nullptr) 
 			cout << endl << "Error to load image : " << SDL_GetError();
 
-		texture = SDL_CreateTextureFromSurface(renderer, load_image);
+		texture = SDL_CreateTextureFromSurface(renderer, load_image);		
 		SDL_FreeSurface(load_image);
 		
 		return texture;	

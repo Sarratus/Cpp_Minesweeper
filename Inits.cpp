@@ -34,6 +34,15 @@ void Init() {
 		(black_numbers + i)->Init(to_string(i), *(temp + 0), 50);
 	}
 
+	char ch = '0';
+	string st;
+	
+	for (auto i = 0; i < 78; i++) {
+		ch = '0' + char(i);
+		st = ch;
+
+		alphabet[i].Init(st, *(temp), 50);
+	}
 }
 
 void Close() {
@@ -43,7 +52,7 @@ void Close() {
 
 	for (auto i = 0; i < 10; i++)
 		(black_numbers + i)->~Text_render();
-
+		
 	shaded_render.~shaded_render();
 	main_render.~main_render();
 	
