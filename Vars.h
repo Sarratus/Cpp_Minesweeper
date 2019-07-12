@@ -12,6 +12,8 @@ extern unsigned short int SCREEN_WIDTH, SCREEN_HEIGHT;
 const int SCREEN_FPS = 20; 
 constexpr int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
+const int CONTROLLER_DEAD_ZONE = 8000;
+
 extern bool lose;
 extern bool quit;
 extern bool restart;

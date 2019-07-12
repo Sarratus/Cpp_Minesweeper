@@ -18,8 +18,6 @@ Menu::Menu() {
 	Text_render minesweeper("Minesweeper", text_color, 50);
 	titles.push_back(minesweeper);
 	//minesweeper.~Text_render();
-	
-
 
 	item = Main_Menu;
 }
@@ -43,31 +41,29 @@ void Menu::Menu_renderer() {
 	
 	Letter_Renderer("by Lis", &dst);	
 
-	switch (item)
-	{
-	case Main_Menu: {
-		Main_Menu_Renderer();				
+	switch (item) {
+		case Main_Menu: {
+			Main_Menu_Renderer();				
 
-		break;
-	}
-	case Play: {
-		start = true;
+			break;
+		}
+		case Play: {
+			start = true;
 
-		break;
+			break;
+		}
+		case Settings: {
+			break;
+		}
+		case Exit: {
+			quit = true;
+			this->~Menu();
+			break;
+		}
+		default:
+			cout << endl << "Menu error (wrong item)";
+			break;
 	}
-	case Settings: {
-		break;
-	}
-	case Exit: {
-		quit = true;
-		this->~Menu();
-		break;
-	}
-	default:
-		cout << endl << "Menu error (wrong item)";
-		break;
-	}
-
 	SDL_RenderPresent(renderer);
 }
 
@@ -77,9 +73,7 @@ void Menu::Main_Menu_Renderer() {
 	SDL_Rect src;
 
 	int x, y;
-	SDL_GetMouseState(&x, &y);
-	
-	
+	SDL_GetMouseState(&x, &y);	
 
 	// Генерация надписи //
 	src = { 23, 0, 14, 20 };
@@ -95,8 +89,16 @@ void Menu::Main_Menu_Renderer() {
 		// Играть //
 			// Кнопка //
 	dst = { int(SCREEN_WIDTH / 3.18), SCREEN_HEIGHT / 2, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 6 };
-	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h) { src = { 20, 0, 20, 20 }; over_item = Play; }
-	else { src = { 0, 0, 20, 20 }; over_item = nothing;  }
+
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) { 
+		over_item = Play; 
+	} else if (keyboard)
+		over_item = nothing;  
+
+	if (over_item == Play) {
+		src = { 20, 0, 20, 20 };
+	} else 
+		src = { 0, 0, 20, 20 };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
@@ -111,8 +113,14 @@ void Menu::Main_Menu_Renderer() {
 		// Настройки //
 			// Кнопка //
 	dst.y += SCREEN_HEIGHT / 6;
-	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h) { src = { 20, 0, 20, 20 }; over_item = Settings; }
-	else { src = { 0, 0, 20, 20 }; }
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) {
+		over_item = Settings; 
+	}
+
+	if (over_item == Settings) {
+		src = { 20, 0, 20, 20 };
+	} else
+		src = { 0, 0, 20, 20 };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 		
@@ -127,8 +135,14 @@ void Menu::Main_Menu_Renderer() {
 		// Выход //
 	dst.x += dst.w;
 	dst.w = dst.h;
-	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h) { src = { 20, 0, 20, 20 }; over_item = Exit; }
-	else { src = { 0, 0, 20, 20 }; }
+
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) 
+		over_item = Exit; 	
+
+	if (over_item == Exit) {
+		src = { 20, 0, 20, 20 };
+	} else
+		src = { 0, 0, 20, 20 };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 	
@@ -138,27 +152,50 @@ void Menu::Main_Menu_Renderer() {
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 }
 
-void Menu::Window_update() {
-	
-	if (SCREEN_HEIGHT / SCREEN_WIDTH <= 2.1 && SCREEN_WIDTH / SCREEN_HEIGHT <= 2.1)
-	if (SCREEN_HEIGHT / 3  <= SCREEN_WIDTH / 3) {
-		//cout << endl << "y is smaller";
+void Menu::Window_update(SDL_Event &e) {	
+	if (e.window.data1 > e.window.data2 * 2.1 || e.window.data2 > e.window.data1 * 2.1) {
+		if (e.window.data1 == SCREEN_WIDTH) {
+			SCREEN_HEIGHT = SCREEN_WIDTH / 2.1;
 
-		y = SCREEN_HEIGHT / 3;
-		//cell_size = SCREEN_HEIGHT * 0.75 / height;
-		//x = (-cell_size * width / 2) + (SCREEN_WIDTH / 2);
+		}
+		else if (e.window.data2 == SCREEN_HEIGHT) {
+			SCREEN_WIDTH = SCREEN_HEIGHT / 2;
+		}
+		SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
+		//cout << endl << "Are you yebok? O_o";
 	}
 	else {
-		//cout << endl << "x is smaller";
-
-		x = SCREEN_WIDTH / 3;
-		//cell_size = SCREEN_WIDTH * 0.9 / width;
-		//y = (SCREEN_HEIGHT * 0.2) - (cell_size * height / 2) + (SCREEN_HEIGHT * 0.75 / 2);
+		SCREEN_WIDTH = e.window.data1;
+		SCREEN_HEIGHT = e.window.data2;
 	}
+	this->Main_Menu_Renderer();
 }
 
 void Menu::Gamepad_Control(Uint8 button) {
+	switch (button) {
+	case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+	case SDL_CONTROLLER_BUTTON_DPAD_UP: {
+		if (over_item > Play) {
+			over_item = static_cast<Game_Menu>(int(over_item) - 1);
+		} else if (over_item == Play)
+			over_item = Exit;
 
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+	case SDL_CONTROLLER_BUTTON_DPAD_DOWN: {
+		if (over_item < Exit) {
+			over_item = static_cast<Game_Menu>(int(over_item) + 1);
+		} else if (over_item == Exit)
+			over_item = Play;
+
+		break;
+	}
+	case SDL_CONTROLLER_BUTTON_A: {
+		item = over_item;
+		break;
+	}
+	}
 }
 
 void Menu::Keyboard_Control(SDL_Keycode button) {
@@ -166,27 +203,22 @@ void Menu::Keyboard_Control(SDL_Keycode button) {
 }
 
 void Menu::Mouse_Control(Uint8 button) {
-	switch (over_item)
-	{
-	case Play: {
-		if (button == SDL_BUTTON_LEFT)
+	if (button == SDL_BUTTON_LEFT) 
+		switch (over_item)
+		{
+		case Play: {
 			item = Play;
-		break;
-	}
-	case Settings: {
-		if (button == SDL_BUTTON_LEFT)
+			break;
+		}
+		case Settings: {
 			item = Settings;
-		break;
-	}
-	case Exit: {
-		if (button == SDL_BUTTON_LEFT) 
-			quit = true;		
-		break;
-	}
-	default:
-		cout << endl << "Menu error (wrong item)";
-		break;
-	}	
+			break;
+		}
+		case Exit: {
+			quit = true;
+			break;
+		}
+		}
 }
 
 void Menu::Menu_Navigation(int x_pos, int y_pos) {
@@ -231,20 +263,19 @@ void Menu::Start_game() {
 		while (SDL_PollEvent(&e) != 0) {
 
 			// Общие ивенты //
-			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-				SCREEN_WIDTH = e.window.data1;
-				SCREEN_HEIGHT = e.window.data2;
-
-				this->Window_update();
-				this->Menu_renderer();
-
-				break;
-			}
+			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+				this->Window_update(e);
+			
 			if (e.type == SDL_QUIT)
-				quit = true;
+				quit = true;			
 
 			// Проверка нажатий клавиатуры //
+
 			if (keyboard) {
+				
+				if (e.button.type == SDL_MOUSEBUTTONUP) 
+					this->Mouse_Control(e.button.button);
+								
 				if (e.cdevice.type == SDL_CONTROLLERDEVICEADDED) {
 					if (game_controller == nullptr)
 						game_controller = SDL_GameControllerOpen(0);
@@ -257,9 +288,6 @@ void Menu::Start_game() {
 				if (e.key.type == SDL_KEYUP)
 					this->Keyboard_Control(e.key.keysym.sym);
 
-				if (e.button.type == SDL_MOUSEBUTTONUP) {
-					this->Mouse_Control(e.button.button);
-				}
 				// Проверка нажатий геймпада //
 			}
 			else {
@@ -268,6 +296,24 @@ void Menu::Start_game() {
 
 				if (e.cbutton.type == SDL_CONTROLLERBUTTONDOWN)
 					this->Gamepad_Control(e.cbutton.button);
+
+
+				//cout << endl << "axis_value: " << e.caxis.axis << '\t' << e.caxis.value;
+
+				/*if (e.caxis.type == SDL_CONTROLLERAXISMOTION) {
+
+					cout << endl << "axis_value: " << e.caxis.value;
+
+					if ((e.caxis.value < -CONTROLLER_DEAD_ZONE) || (e.caxis.value > CONTROLLER_DEAD_ZONE)) {
+						if (over_item < Exit) {
+							int i = over_item + 1;
+							over_item = static_cast<Game_Menu>(i);
+						}
+						if (over_item == Exit)
+							over_item = Play;
+					}
+				}*/
+
 			}
 		}
 		++countedFrames;
@@ -294,7 +340,8 @@ RESTART:
 	countedFrames = 0;
 	fpsTimer.start();
 		
-	while (!quit && !lose) {
+	while (!quit && !lose && !restart) {
+		
 		capTimer.start();
 
 		float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
@@ -307,18 +354,15 @@ RESTART:
 		while (SDL_PollEvent(&e) != 0) {
 
 			// Общие ивенты //
-			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-				SCREEN_WIDTH = e.window.data1;
-				SCREEN_HEIGHT = e.window.data2;
-
-				field->Window_update();
-				field->Field_Render(true);
-
-				break;
-			}
+			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)				
+					field->Window_update(e);		
+			
 			if (e.type == SDL_QUIT)
 				quit = true;
 
+			if (e.button.type == SDL_MOUSEBUTTONUP) 
+				field->Mouse_Control(e.button.button);
+			
 			// Проверка нажатий клавиатуры //
 			if (keyboard) {
 				if (e.cdevice.type == SDL_CONTROLLERDEVICEADDED) {
@@ -327,15 +371,11 @@ RESTART:
 					keyboard = false;
 				}
 
-				if (e.cbutton.type == SDL_CONTROLLERBUTTONUP)
-					keyboard = false;
+				if (e.cbutton.type == SDL_CONTROLLERBUTTONUP) 
+					keyboard = false;					
 
 				if (e.key.type == SDL_KEYUP)
 					field->Keyboard_Control(e.key.keysym.sym);
-
-				if (e.button.type == SDL_MOUSEBUTTONUP) {
-					field->Mouse_Control(e.button.button);
-				}
 
 				// Проверка нажатий геймпада //
 			}
@@ -345,6 +385,8 @@ RESTART:
 
 				if (e.cbutton.type == SDL_CONTROLLERBUTTONDOWN)
 					field->Gamepad_Control(e.cbutton.button);
+				
+									
 			}
 		}
 		++countedFrames;
@@ -357,16 +399,21 @@ RESTART:
 
 	fpsTimer.stop();
 	capTimer.stop();
-	SDL_GameControllerClose(game_controller);
+	
+	if (lose)
+		cout << endl << "You are loser!";
 
-	if (lose) {
-		field->~Playing_field();
+	if (lose || restart) 
+		field->~Playing_field();					
 
+	if (restart && !quit) {
 		cout << endl << "RESTART!";
-
-		if (restart && !quit)
-			goto RESTART;
+		//field->~Playing_field();
+		goto RESTART;
 	}
+		
+
+	SDL_GameControllerClose(game_controller);
 }
 
 
@@ -519,7 +566,7 @@ Playing_field::~Playing_field() {
 				quit = true;
 			}
 
-			if (e.key.keysym.sym == SDLK_r) {
+			if (e.key.keysym.sym == SDLK_r || e.cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
 				restart = true;
 			}
 
@@ -532,20 +579,9 @@ Playing_field::~Playing_field() {
 				}
 				}
 			
-			switch (e.window.event) {
-			case SDL_WINDOWEVENT_SIZE_CHANGED: {
-
-				SCREEN_WIDTH = e.window.data1;
-				SCREEN_HEIGHT = e.window.data2;
-
-				Window_update();
-				Field_Render(false);
-
-				break;
-			}
-			}
+			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+				Window_update(e);			
 		}
-
 		++countedFrames;
 
 		int frameTicks = capTimer.getTicks();
@@ -567,25 +603,45 @@ Playing_field::~Playing_field() {
 	SDL_DestroyTexture(shaded_textures);
 }
 
-void Playing_field::Window_update() {
+void Playing_field::Window_update(SDL_Event &e) {	
 	
-	// Установка размеров пользовательского интерфейса для текущего размера окна //
+	// Установка "нормальных" размеров окна при "нестандартном масштабировании" //
 	
-	if (SCREEN_HEIGHT / SCREEN_WIDTH <= 2.1 && SCREEN_WIDTH / SCREEN_HEIGHT <= 2.1)
-	if (SCREEN_HEIGHT * 0.75 / height <= SCREEN_WIDTH * 0.9 / width) {
-		//cout << endl << "y is smaller";
-		
-		y = SCREEN_HEIGHT * 0.2;
-		cell_size = SCREEN_HEIGHT * 0.75 / height;
-		x = (-cell_size * width / 2) + (SCREEN_WIDTH / 2);
+	if (e.window.data1 > e.window.data2 * 2.1 || e.window.data2 > e.window.data1 * 2.1) {
+		if (e.window.data1 == SCREEN_WIDTH) {
+			SCREEN_HEIGHT = SCREEN_WIDTH / 2.1;					
+
+		} else if (e.window.data2 == SCREEN_HEIGHT) {
+			SCREEN_WIDTH = SCREEN_HEIGHT / 2;			
+		}		
+		SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
+		//cout << endl << "Are you yebok? O_o";
 	}
 	else {
-		//cout << endl << "x is smaller";
-		
-		x = SCREEN_WIDTH * 0.05;
-		cell_size = SCREEN_WIDTH * 0.9 / width;
-		y = (SCREEN_HEIGHT * 0.2) - (cell_size * height / 2) + (SCREEN_HEIGHT * 0.75 / 2);
+		SCREEN_WIDTH = e.window.data1;
+		SCREEN_HEIGHT = e.window.data2;	
 	}
+
+	// Установка размеров пользовательского интерфейса для текущего размера окна //
+
+	if (SCREEN_HEIGHT / SCREEN_WIDTH <= 2.1 && SCREEN_WIDTH / SCREEN_HEIGHT <= 2.1)
+		if (SCREEN_HEIGHT * 0.75 / height <= SCREEN_WIDTH * 0.9 / width) {
+			//cout << endl << "y is smaller";
+
+			y = SCREEN_HEIGHT * 0.2;
+			cell_size = SCREEN_HEIGHT * 0.75 / height;
+			x = (-cell_size * width / 2) + (SCREEN_WIDTH / 2);
+		}
+		else {
+			//cout << endl << "x is smaller";
+
+			x = SCREEN_WIDTH * 0.05;
+			cell_size = SCREEN_WIDTH * 0.9 / width;
+			y = (SCREEN_HEIGHT * 0.2) - (cell_size * height / 2) + (SCREEN_HEIGHT * 0.75 / 2);
+		}
+
+	this->Field_Render(true);
+
 }
 
 void Playing_field::Show_mines_to_console() {
@@ -651,7 +707,7 @@ void Playing_field::Field_Render(bool render_numbers) {
 	if (!keyboard && render_numbers)
 		Cell_Lighter(x_cell_controller, y_cell_controller);
 	
-	SDL_RenderPresent(renderer);
+ 	SDL_RenderPresent(renderer);
 
 	main_render.unlock();
 }
@@ -737,17 +793,27 @@ void Playing_field::Flag_setter(int x_pos, int y_pos) {
 	if (player_interaction[x_pos][y_pos] == false && open_cells[x_pos][y_pos] == false && number_of_mines - number_of_flags > 0) {
 		player_interaction[x_pos][y_pos] = true;
 		++number_of_flags;
+		//cout << endl << "++ " << number_of_flags;
 	} else if (*(*(player_interaction + x_pos) + y_pos) == true && *(*(open_cells + x_pos) + y_pos) == false) {
 		player_interaction[x_pos][y_pos] = false;
 		--number_of_flags;
+		//cout << endl << "-- " << number_of_flags;
 	}
 
-	if (number_of_mines - number_of_flags >= 0) {
+	// Проверка на "выигрыш" //
+
+	if (number_of_mines - number_of_flags == 0) {
+		//cout << endl << "Max flags!";
 		for (auto i = 0; i < height; i++)
 			for (auto j = 0; j < width; j++) {
-				if (*(*(mines_and_numbers + j) + i) == -1 && *(*(player_interaction + j) + i) == true) {}
-				else { goto EXIT; }
+				if ((mines_and_numbers[j][i] == -1 && player_interaction[j][i] == true) || (mines_and_numbers[j][i] != -1)) {}
+				else { 
+					//cout << endl << "Not correct flags: " << j+1 << ", " << i+1; 
+					goto EXIT; 
+				}
 			}
+		cout << endl << "You are winner!";
+
 		Win();
 
 		EXIT:;
@@ -756,29 +822,62 @@ void Playing_field::Flag_setter(int x_pos, int y_pos) {
 
 void Playing_field::Win() {
 	Field_Render(true);
-	SDL_Color win_color = { 200, 200, 200 };
+
+	SDL_Color win_color = { 20, 20, 22 };
 	Text_render win("You are win!", win_color, 50);
-	//win.Init("You are win!", win_color, 50);
-	SDL_Rect dst = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, SCREEN_WIDTH / 2 / 12 };
+	
+	SDL_Rect dst = { SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, SCREEN_WIDTH / 2 / 12 };
 	SDL_RenderCopy(renderer, win.texture, NULL, &dst);
 
+	SDL_RenderPresent(renderer);
+
+	LTimer fpsTimer;
+	LTimer capTimer;
+
+	int countedFrames = 0;
+	fpsTimer.start();
+
 	SDL_Event e;
-	while (SDL_PollEvent(&e) != 0) {
 
-		// Общие ивенты //
-		if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-			SCREEN_WIDTH = e.window.data1;
-			SCREEN_HEIGHT = e.window.data2;
+	while (!quit && !restart) {
 
-			Window_update();
-			Field_Render(true);
+		capTimer.start();
+					
+		float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
+		if (avgFPS > 1000) {
+			avgFPS = 0;
+		}	
 
-			break;
+			while (SDL_PollEvent(&e) != 0) {
+
+				// Общие ивенты //
+				
+				if (e.type == SDL_QUIT)
+					quit = true;
+
+				if (e.window.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
+					this->Window_update(e);
+
+					SDL_Rect dst = { SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, SCREEN_WIDTH / 2 / 12 };
+					SDL_RenderCopy(renderer, win.texture, NULL, &dst);
+
+					SDL_RenderPresent(renderer);
+				}
+
+				if (e.key.keysym.sym == SDLK_r || e.cbutton.button == SDL_CONTROLLER_BUTTON_Y)
+					restart = true;
+			}
+
+		++countedFrames;
+
+		int frameTicks = capTimer.getTicks();
+		if (frameTicks < SCREEN_TICKS_PER_FRAME) {
+			SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
 		}
-		if (e.type == SDL_QUIT)
-			quit = true;
 	}
 
+	fpsTimer.stop();
+	capTimer.stop();		
 }
 
 void Playing_field::Left_Click() {
@@ -849,6 +948,7 @@ void Playing_field::Gamepad_Control(Uint8 button) {
 		Cell_Opening(x_cell_controller, y_cell_controller);
 		break;
 	}
+	case SDL_CONTROLLER_BUTTON_B:
 	case SDL_CONTROLLER_BUTTON_X: {
 		Flag_setter(x_cell_controller, y_cell_controller);
 		break;

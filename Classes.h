@@ -33,7 +33,7 @@ public:
 	~Menu();
 
 	void Menu_renderer();
-	void Window_update();
+	void Window_update(SDL_Event &e);
 
 	void Gamepad_Control(Uint8 button);
 
@@ -68,7 +68,7 @@ public:
 	~Playing_field();
 
 	void Field_Render(bool render_numbers);
-	void Window_update();
+	void Window_update(SDL_Event &e);
 	
 	void Show_mines_to_console();	
 		
