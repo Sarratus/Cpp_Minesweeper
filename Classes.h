@@ -48,6 +48,7 @@ public:
 
 private:
 	void Main_Menu_Renderer();
+	void Settings_Renderer();
 
 	int x = NULL, y = NULL;
 	int width = NULL, height = NULL;

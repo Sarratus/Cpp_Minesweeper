@@ -19,4 +19,4 @@ mutex shaded_render;
 
 Text_render* numbers = new Text_render[5];
 Text_render* black_numbers = new Text_render[10];
-Text_render* alphabet = new Text_render[78];
+Text_render* alphabet = new Text_render[79];

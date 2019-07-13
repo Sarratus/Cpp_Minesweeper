@@ -34,10 +34,10 @@ void Init() {
 		(black_numbers + i)->Init(to_string(i), *(temp + 0), 50);
 	}
 
-	char ch = '0';
+	char ch;
 	string st;
 	
-	for (auto i = 0; i < 78; i++) {
+	for (auto i = 0; i < 79; i++) {
 		ch = '0' + char(i);
 		st = ch;
 

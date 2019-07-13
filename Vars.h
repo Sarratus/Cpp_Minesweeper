@@ -14,6 +14,8 @@ constexpr int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
 const int CONTROLLER_DEAD_ZONE = 8000;
 
+const int ICONS_SIZE = 20;
+
 extern bool lose;
 extern bool quit;
 extern bool restart;

@@ -30,29 +30,18 @@ Menu::~Menu() {
 void Menu::Menu_renderer() {
 	
 	SDL_RenderClear(renderer);
-	
-	SDL_Rect src;
-	SDL_Rect dst;
-
-	dst = { int(SCREEN_WIDTH * 0.035), int(SCREEN_HEIGHT * 0.945), int(SCREEN_HEIGHT * 0.03 * 6), int(SCREEN_HEIGHT * 0.03) };
-	src = { 20, 0, 20, 20 };
-	
-	//SDL_RenderCopy(renderer, textures, &src, &dst);
-	
-	Letter_Renderer("by Lis", &dst);	
 
 	switch (item) {
 		case Main_Menu: {
 			Main_Menu_Renderer();				
-
 			break;
 		}
 		case Play: {
 			start = true;
-
 			break;
 		}
 		case Settings: {
+			Settings_Renderer();
 			break;
 		}
 		case Exit: {
@@ -60,11 +49,24 @@ void Menu::Menu_renderer() {
 			this->~Menu();
 			break;
 		}
-		default:
-			cout << endl << "Menu error (wrong item)";
-			break;
 	}
+
+	SDL_Rect src;
+	SDL_Rect dst;
+
+	dst = { int(SCREEN_WIDTH * 0.028), int(SCREEN_HEIGHT * 0.945), int(SCREEN_HEIGHT * 0.03 * 5.35), int(SCREEN_HEIGHT * 0.03) };
+	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
+
+	Letter_Renderer("By Lis", &dst);
+
 	SDL_RenderPresent(renderer);
+}
+
+void Menu::Settings_Renderer() {
+
+	
+
+
 }
 
 void Menu::Main_Menu_Renderer() {
@@ -75,20 +77,42 @@ void Menu::Main_Menu_Renderer() {
 	int x, y;
 	SDL_GetMouseState(&x, &y);	
 
+	dst = { int(SCREEN_WIDTH / 3), int(SCREEN_HEIGHT * 2 / 3) - int(SCREEN_WIDTH / 9 / 2), int(SCREEN_WIDTH / 9), int(SCREEN_WIDTH / 9) };
+	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
+	
+	while (dst.x > 0)
+		dst.x -= dst.w;
+	while (dst.y > 0)
+		dst.y -= dst.h;
+
+	int primary_x = dst.x;
+	
+	while (1) {
+		SDL_RenderCopy(renderer, textures, &src, &dst);
+		dst.x += dst.w;
+
+		if (dst.x >= SCREEN_WIDTH) {
+			dst.x = primary_x;
+			dst.y += dst.h;
+		}
+		if (dst.y >= SCREEN_HEIGHT)
+			break;			
+	}
+
 	// Генерация надписи //
-	src = { 23, 0, 14, 20 };
-	dst = { 0, int(SCREEN_HEIGHT / 4 - SCREEN_WIDTH * 0.8 / 11 / 1.2), SCREEN_WIDTH, int(SCREEN_WIDTH * 0.8 / titles[Window_title].original_text.size() * 1.55) };
+	src = { 23, 0, 14, ICONS_SIZE };
+	dst = { 0, /*int(SCREEN_HEIGHT / 4 - SCREEN_WIDTH * 0.8 / 11 / 1.2)*/ int(SCREEN_HEIGHT * 2 / 3) - int(SCREEN_WIDTH / 9 / 2) - (dst.h * 2), SCREEN_WIDTH, int(SCREEN_WIDTH * 0.8 / titles[Window_title].original_text.size() * 1.55) };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
-	dst = { int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT / 4 - SCREEN_WIDTH * 0.8 / 11 / 2), int(SCREEN_WIDTH * 0.8), int(SCREEN_WIDTH * 0.8 / titles[Window_title].original_text.size()) };
+	dst = { int(SCREEN_WIDTH * 0.1 * 1.04), int(dst.y + dst.h / 4), int(SCREEN_WIDTH * 0.8), int(SCREEN_WIDTH * 0.8 / titles[Window_title].original_text.size()) };
 
 	Letter_Renderer("Minesweeper", &dst);
 	
 	// Генерация кнопок //
 		// Играть //
 			// Кнопка //
-	dst = { int(SCREEN_WIDTH / 3.18), SCREEN_HEIGHT / 2, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 6 };
+	dst = { int(SCREEN_WIDTH / 3), int(SCREEN_HEIGHT * 2 / 3 ) - int(SCREEN_WIDTH / 9 / 2), int(SCREEN_WIDTH / 9), int(SCREEN_WIDTH / 9) };
 
 	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) { 
 		over_item = Play; 
@@ -96,79 +120,67 @@ void Menu::Main_Menu_Renderer() {
 		over_item = nothing;  
 
 	if (over_item == Play) {
-		src = { 20, 0, 20, 20 };
+		src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 	} else 
-		src = { 0, 0, 20, 20 };
+		src = { 0, 0, ICONS_SIZE, ICONS_SIZE };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
-
-			// Текст //
-	dst_text.x = dst.x + int(dst.h * 1.05);
-	dst_text.y = dst.y + int(dst.h / 3);
-	dst_text.w = dst.w - dst.h * 2;
-	dst_text.h = dst.h - int(dst.h / 2);
-
-	Letter_Renderer("Play", &dst_text);
+	src.y += ICONS_SIZE;
+	SDL_RenderCopy(renderer, textures, &src, &dst);
 
 		// Настройки //
 			// Кнопка //
-	dst.y += SCREEN_HEIGHT / 6;
-	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) {
-		over_item = Settings; 
-	}
+	dst.x += dst.w;
+
+	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) 
+		over_item = Settings; 	
 
 	if (over_item == Settings) {
-		src = { 20, 0, 20, 20 };
+		src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 	} else
-		src = { 0, 0, 20, 20 };
+		src = { 0, 0, ICONS_SIZE, ICONS_SIZE };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
-		
-			// Текст //
-	dst_text.x = dst.x + int(dst.h / 1.75);
-	dst_text.y = dst.y + int(dst.h / 2.5);
-	dst_text.w = dst.w - int(dst.h / 1.9 * 2);
-	dst_text.h = dst.h - int(dst.h / 3 * 2);
-
-	Letter_Renderer("Settings", &dst_text);
+	src.y += 2*ICONS_SIZE;
+	SDL_RenderCopy(renderer, textures, &src, &dst);
 
 		// Выход //
 	dst.x += dst.w;
-	dst.w = dst.h;
-
+	
 	if (x >= dst.x && x <= dst.x + dst.w && y >= dst.y && y <= dst.y + dst.h && keyboard) 
 		over_item = Exit; 	
 
 	if (over_item == Exit) {
-		src = { 20, 0, 20, 20 };
+		src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 	} else
-		src = { 0, 0, 20, 20 };
+		src = { 0, 0, ICONS_SIZE, ICONS_SIZE };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 	
 		// Мина на кнопке выхода //
-	src = { 60, 0, 20, 20 };
+	src.y += 3 * ICONS_SIZE;
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 }
 
 void Menu::Window_update(SDL_Event &e) {	
+	// Установка "нормальных" размеров окна при "нестандартном масштабировании" //
+
 	if (e.window.data1 > e.window.data2 * 2.1 || e.window.data2 > e.window.data1 * 2.1) {
 		if (e.window.data1 == SCREEN_WIDTH) {
 			SCREEN_HEIGHT = SCREEN_WIDTH / 2.1;
-
 		}
 		else if (e.window.data2 == SCREEN_HEIGHT) {
 			SCREEN_WIDTH = SCREEN_HEIGHT / 2;
 		}
 		SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
 		//cout << endl << "Are you yebok? O_o";
-	}
-	else {
+	} else {
 		SCREEN_WIDTH = e.window.data1;
 		SCREEN_HEIGHT = e.window.data2;
 	}
-	this->Main_Menu_Renderer();
+	
+	this->Menu_renderer();
 }
 
 void Menu::Gamepad_Control(Uint8 button) {
@@ -243,8 +255,9 @@ void Menu::Start_game() {
 
 	SDL_GameController* game_controller = nullptr;
 	game_controller = SDL_GameControllerOpen(0);
-	if (game_controller == nullptr)
+	if (game_controller == nullptr) {
 		cout << endl << "Controller load error: " << SDL_GetError();
+	}
 
 	int countedFrames = 0;
 
@@ -280,11 +293,14 @@ void Menu::Start_game() {
 					if (game_controller == nullptr)
 						game_controller = SDL_GameControllerOpen(0);
 					keyboard = false;
+					over_item = Play;
 				}
 
-				if (e.cbutton.type == SDL_CONTROLLERBUTTONUP)
+				if (e.cbutton.type == SDL_CONTROLLERBUTTONUP) {
 					keyboard = false;
-
+					over_item = Play;
+				}
+					
 				if (e.key.type == SDL_KEYUP)
 					this->Keyboard_Control(e.key.keysym.sym);
 
@@ -296,23 +312,6 @@ void Menu::Start_game() {
 
 				if (e.cbutton.type == SDL_CONTROLLERBUTTONDOWN)
 					this->Gamepad_Control(e.cbutton.button);
-
-
-				//cout << endl << "axis_value: " << e.caxis.axis << '\t' << e.caxis.value;
-
-				/*if (e.caxis.type == SDL_CONTROLLERAXISMOTION) {
-
-					cout << endl << "axis_value: " << e.caxis.value;
-
-					if ((e.caxis.value < -CONTROLLER_DEAD_ZONE) || (e.caxis.value > CONTROLLER_DEAD_ZONE)) {
-						if (over_item < Exit) {
-							int i = over_item + 1;
-							over_item = static_cast<Game_Menu>(i);
-						}
-						if (over_item == Exit)
-							over_item = Play;
-					}
-				}*/
 
 			}
 		}
@@ -674,14 +673,14 @@ void Playing_field::Field_Render(bool render_numbers) {
 
 		// Рендер верхней панели //
 
-	SDL_Rect src = { 3, 0, 14, 20 };
+	SDL_Rect src = { 3, 0, 14, ICONS_SIZE };
 	SDL_Rect dst = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT * 0.15 };
 	
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
 		// Рендер счётчика оставшихся бомб //
 
-	src = { 20, 0, 20, 20 };
+	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 	dst = { x+ int(SCREEN_HEIGHT * 0.16 / 2), int(SCREEN_HEIGHT * 0.15 / 4), int(SCREEN_HEIGHT * 0.15 / 2 * (number_of_mines - number_of_flags > 99 ? 3 : 2)), int(SCREEN_HEIGHT * 0.15 / 2) };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
@@ -695,7 +694,7 @@ void Playing_field::Field_Render(bool render_numbers) {
 
 		// Рендер прошедшего времени с начала раунда //
 
-	src = { 20, 0, 20, 20 };
+	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 	dst = { x + width * cell_size - int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3) ), int(SCREEN_HEIGHT * 0.15 / 4), int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3)), int(SCREEN_HEIGHT * 0.15 / 2) };
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
@@ -719,27 +718,27 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 		
 	if (!open_cells[pos_x][pos_y]) {
 		// Рендер клетки //	
-		src = { 0, 0, 20, 20 };
+		src = { 0, 0, ICONS_SIZE, ICONS_SIZE };
 		SDL_RenderCopy(renderer, textures, &src, &dst);
 
 		// Рендер "флага" //
 		if (player_interaction[pos_x][pos_y]) {
-			src = { 40, 0, 20, 20 };
+			src = { 2*ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 			SDL_RenderCopy(renderer, textures, &src, &dst);
 		}
 	} else {
 		// Рендер подложки клетки //
-		src = { 20, 0, 20, 20 };
+		src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 		SDL_RenderCopy(renderer, textures, &src, &dst);		
 
 		// Рендер мин и флагов (для проигрыша) //
 		if (mines_and_numbers[pos_x][pos_y] == -1) {
-			src = { 60, 0, 20, 20 };
+			src = { 3*ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 			dst = { x + pos_x * cell_size, y + pos_y * cell_size, cell_size, cell_size };
 			SDL_RenderCopy(renderer, textures, &src, &dst);
 		}			
 		if (player_interaction[pos_x][pos_y] && !render_numbers) {
-			src = { 40, 0, 20, 20 };
+			src = { 2*ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 			SDL_RenderCopy(renderer, textures, &src, &dst);
 		}
 
