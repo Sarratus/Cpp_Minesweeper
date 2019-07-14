@@ -23,6 +23,11 @@ enum Game_Menu {
 	Settings,
 	Exit,
 
+	Back = 20,
+	Sound_Changer,
+	Window,
+	Fullscreen,
+
 	nothing = 100
 };
 
@@ -58,8 +63,6 @@ private:
 	Game_Menu item;
 
 	SDL_Texture* textures = nullptr;
-
-	vector<Text_render> titles;
 };
 
 class Playing_field
@@ -113,6 +116,21 @@ private:
 	
 	unsigned short int number_of_mines = NULL;
 	unsigned short int number_of_flags = NULL;	
+};
+
+class Text_Input
+{
+public:
+	Text_Input(int a, SDL_Rect destination);
+	~Text_Input();	
+
+	void Handle_Input();
+	void Text_Render();
+
+private:
+	string input_text;	
+
+	SDL_Rect dst = { 0, 0, 0, 0 };
 };
 
 class Text_render

@@ -4,6 +4,8 @@
 unsigned short int SCREEN_WIDTH = 1280;
 unsigned short int SCREEN_HEIGHT = 720;
 
+int sound_volume = 100;
+
 bool lose = false;
 bool quit = false;
 bool restart = false;

@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
 	
 	game.Start_game();
 
-	Close();
+	Close();	
 
 	return 0;
 }

@@ -16,6 +16,8 @@ const int CONTROLLER_DEAD_ZONE = 8000;
 
 const int ICONS_SIZE = 20;
 
+extern int sound_volume;
+
 extern bool lose;
 extern bool quit;
 extern bool restart;
