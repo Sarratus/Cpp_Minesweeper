@@ -4,6 +4,12 @@
 unsigned short int SCREEN_WIDTH = 1280;
 unsigned short int SCREEN_HEIGHT = 720;
 
+unsigned short int playing_field_width, playing_field_height;
+unsigned short int number_of_mines_;
+
+vector<vector<signed char>> arrayKEK;
+vector<vector<signed char>> arrayLOL;
+
 int sound_volume = 100;
 
 bool lose = false;

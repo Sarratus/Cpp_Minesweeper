@@ -2,12 +2,19 @@
 
 #include <SDL.h>
 #include <mutex>
+#include <vector>
 
 using namespace std;
 
 //////////// оепелеммше //////////////////////////////////
 
 extern unsigned short int SCREEN_WIDTH, SCREEN_HEIGHT;
+
+extern unsigned short int playing_field_width, playing_field_height;
+extern unsigned short int number_of_mines_;
+
+extern vector<vector<signed char>> arrayKEK;
+extern vector<vector<signed char>> arrayLOL;
 
 const int SCREEN_FPS = 20; 
 constexpr int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
@@ -44,3 +51,5 @@ void Window_Fullscreen();
 
 void Numbers_Renderer(int, SDL_Rect*);
 void Letter_Renderer(string str, SDL_Rect* dst);
+void Letters_Scaled_Renderer(string str, SDL_Rect* dst, float percentage);
+void Letters_Padded_Renderer(string str, SDL_Rect* dst, float percentage_padding);

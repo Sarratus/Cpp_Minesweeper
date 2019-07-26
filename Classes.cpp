@@ -1,25 +1,22 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include "Classes.h"
-#include <nlohmann/json.hpp>
-#include <fstream>
+#include "Vars.h"
 #include <chrono>
+#include <list>
 
-
-using json = nlohmann::json;
 
 ////////////////////// TEXT_INPUT //////////////////////////
 
 
-void Text_Input::Handle_Input() {	
+void Text_Input::Handle_Input(SDL_Event e) {		
 	
-	SDL_Event e;
-
-	while (SDL_PollEvent(&e) != 0) 
 		if (e.type == SDL_KEYDOWN) {
+			if (e.key.keysym.sym == SDLK_DELETE) {
+				input_text.erase();
+			}
 			// Handle backspace //
-
-			if (e.key.keysym.sym == SDLK_BACKSPACE && input_text.length() > 0) {
+			else if (e.key.keysym.sym == SDLK_BACKSPACE && input_text.length() > 0) {
 				input_text.pop_back();				
 			}
 			// Handle Ctrl+c //
@@ -28,33 +25,54 @@ void Text_Input::Handle_Input() {
 			}
 			// Handle Ctrl+v //
 			else if (e.key.keysym.sym == SDLK_v && SDL_GetModState() & KMOD_CTRL) {
-				input_text = SDL_GetClipboardText();
+				string temp = SDL_GetClipboardText();
+				temp.resize(2);
+
+				while (temp.size() != 0 && (!(int(temp.back()) >= int('0') && int(temp.back()) <= int('9'))))
+					if (temp.size() > 0) {
+						cout << endl << temp.back();
+						temp.pop_back();
+					}
 				
-				while (input_text.length() > 2)
-					input_text.pop_back();
+				if (temp.size() != 0)
+					input_text = SDL_GetClipboardText();						
 			}
 		} else if (e.type == SDL_TEXTINPUT)
 			// Not Ctrl+c || Ctrl+v //
-			if (!(SDL_GetModState() & KMOD_CTRL && (e.text.text[0] == 'c' || e.text.text[0] == 'C' || e.text.text[0] == 'v' || e.text.text[0] == 'V'))) {		
-				if (input_text.length() <= 2 && ( int(e.text.text) >= int('0') && int(e.text.text) <= int('9') ))
-					input_text += e.text.text;				
+			if (!(SDL_GetModState() & KMOD_CTRL && (e.text.text[0] == 'c' || e.text.text[0] == 'C' || e.text.text[0] == 'v' || e.text.text[0] == 'V'))) {						
+				if (input_text.size() < 2) {
+					input_text += e.text.text;
+					
+					if (!(int(input_text.back()) >= int('0') && int(input_text.back()) <= int('9')))
+						input_text.pop_back();
+				}					
 			}
 }
 
-void Text_Input::Text_Render() {
+void Text_Input::Text_Render(SDL_Rect* dst, int padding) {	
+	Letters_Padded_Renderer(input_text, dst, padding);
 	
-	Letter_Renderer(input_text, &dst);
+	SDL_Rect dst1 = *dst;
+	dst1.y -= SCREEN_HEIGHT / 50;
+
+	SDL_SetRenderDrawColor(renderer, 177, 44, 44, 255);
+	for (auto i = 0; i < 4; i++) {
+		SDL_RenderDrawLine(renderer, dst1.x, dst1.y + dst1.h, dst1.x + dst1.w, dst1.y + dst1.h);
+		--dst1.y;
+	}	
+	SDL_SetRenderDrawColor(renderer, 180, 180, 183, 255);
+	
 }
 
-Text_Input::Text_Input(int a, SDL_Rect destination) {
+Text_Input::Text_Input(int a) {
 	SDL_StartTextInput();
-	
-	dst = { int(destination.x + destination.w / 10), int(destination.y + destination.h / 10), int(destination.h * 0.8), int(destination.w * 0.8) };
+		
 	input_text = to_string(a);
 }
 
 Text_Input::~Text_Input() {
-	SDL_StopTextInput();
+
+	SDL_StopTextInput();	
 }
 
 
@@ -62,15 +80,19 @@ Text_Input::~Text_Input() {
 
 
 Menu::Menu() {
-	
+	over_item = nothing;
+	item = Main_Menu;
+	current_text_input_field = nothing;
+
 	textures = Image_Load("assets\\textures.png");
 	
 	SDL_Color text_color = { 40, 40, 45 };
-	
-	item = Main_Menu;
 }
 
 Menu::~Menu() {
+	if (text_input != NULL)
+		text_input->~Text_Input();
+
 	SDL_DestroyTexture(textures);
 }
 
@@ -114,7 +136,7 @@ void Menu::Settings_Renderer() {
 	int x, y;
 	SDL_GetMouseState(&x, &y);
 
-	SDL_Rect src, dst;
+	SDL_Rect src, dst, dst1;
 	
 	SDL_RenderClear(renderer);
 	
@@ -144,17 +166,71 @@ void Menu::Settings_Renderer() {
 	src.y += 3 * ICONS_SIZE;
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
+	dst = { SCREEN_HEIGHT < SCREEN_WIDTH ? 0 : int(SCREEN_HEIGHT / 6), 0, int((SCREEN_HEIGHT < SCREEN_WIDTH ? SCREEN_WIDTH : SCREEN_WIDTH - SCREEN_HEIGHT / 6)), int(SCREEN_HEIGHT / 6) };
+	Letters_Padded_Renderer("Settings", &dst, (SCREEN_HEIGHT > SCREEN_WIDTH ? 23 : 45) );
+
 	dst = { int(SCREEN_WIDTH / 2) - int(SCREEN_HEIGHT / 6 / 2 * 9 / 2 / 1.5), int(SCREEN_HEIGHT / 5), int(SCREEN_HEIGHT / 6 / 2 * 9 / 1.5), int(SCREEN_HEIGHT / 6 / 2 / 1.5) };
-	Letter_Renderer("Mine field", &dst);
+	Letter_Renderer("Mine field", &dst);	
 
-	/*dst = { int(SCREEN_WIDTH / 2) - int(SCREEN_HEIGHT / 6 / 2 * 9 / 2 / 1.5), int(SCREEN_HEIGHT / 3.3), int(SCREEN_HEIGHT / 6 / 2 * 4 / 1.5), int(SCREEN_HEIGHT / 6 / 2 / 1.5 / 2) };
-	Letter_Renderer("width", &dst);
+	src = { int(ICONS_SIZE * 2.5), int(ICONS_SIZE * 0.3), 1, 1 };
 
-	dst = { int(SCREEN_WIDTH / 2) - int(SCREEN_HEIGHT / 6 / 2 * 9 / 2 / 1.5), int(SCREEN_HEIGHT / 3.3), int(SCREEN_HEIGHT / 6 / 2 * 5 / 1.5), int(SCREEN_HEIGHT / 6 / 2 / 1.5 / 2) };
-	Letter_Renderer("height", &dst);
+	dst = { 0, int(SCREEN_HEIGHT / 4.35), int(SCREEN_WIDTH / 2.8), int(SCREEN_HEIGHT / 6) };
+	Letters_Padded_Renderer("width:", &dst, 60);
+	
+	dst.y += int(dst.h / 3); dst.x -= int(SCREEN_WIDTH / 80);
+	if (current_text_input_field == Width_text_input) {
+		text_input->Text_Render(&dst, 65);
+	} else {
+		Letters_Padded_Renderer(to_string(playing_field_width), &dst, 65);
+	}
+	dst.y -= int(dst.h / 3); dst.x += int(SCREEN_WIDTH / 80);
 
-	dst = { int(SCREEN_WIDTH / 2) - int(SCREEN_HEIGHT / 6 / 2 * 9 / 2 / 1.5), int(SCREEN_HEIGHT / 3.3), int(SCREEN_HEIGHT / 6 / 2 * 4 / 1.5), int(SCREEN_HEIGHT / 6 / 2 / 1.5 / 2) };
-	Letter_Renderer("mines", &dst);*/
+	if (x <= dst.x + dst.w && x >= dst.x && y <= dst.y + dst.h && y >= dst.y) {
+		over_item = Width_text_input;
+		if (current_text_input_field == nothing) {
+			dst1 = { 0, int(SCREEN_HEIGHT / 4) + int(SCREEN_HEIGHT / 6), int(SCREEN_WIDTH / 3), 3 };
+			SDL_RenderCopy(renderer, textures, &src, &dst1);
+		}		
+	}
+
+
+	dst.x += SCREEN_WIDTH / 3;
+	Letters_Padded_Renderer("height:", &dst, 60);
+	
+	dst.y += int(dst.h / 3); dst.x -= int(SCREEN_WIDTH / 80);
+	if (current_text_input_field == Height_text_input) {
+		text_input->Text_Render(&dst, 65);
+	} else {
+		Letters_Padded_Renderer(to_string(playing_field_height), &dst, 65);
+	}
+	dst.y -= int(dst.h / 3); dst.x += int(SCREEN_WIDTH / 80);
+
+	if (x <= dst.x + dst.w && x >= dst.x && y <= dst.y + dst.h && y >= dst.y) {
+		over_item = Height_text_input;
+		if (current_text_input_field == nothing) {
+			dst1 = { int(SCREEN_WIDTH / 3), int(SCREEN_HEIGHT / 4) + int(SCREEN_HEIGHT / 6), int(SCREEN_WIDTH / 3), 3 };
+			SDL_RenderCopy(renderer, textures, &src, &dst1);
+		}
+	}	
+
+	dst.x += SCREEN_WIDTH / 3;
+	Letters_Padded_Renderer("mines:\0\0  ", &dst, 60);
+	
+	dst.y += int(dst.h / 3); dst.x -= int(SCREEN_WIDTH / 80);
+	if (current_text_input_field == Mines_text_input) {
+		text_input->Text_Render(&dst, 65);
+	} else {
+		Letters_Padded_Renderer(to_string(number_of_mines_), &dst, 65);
+	}
+	dst.y -= int(dst.h / 3); dst.x += int(SCREEN_WIDTH / 80);
+
+	if (x <= dst.x + dst.w && x >= dst.x && y <= dst.y + dst.h && y >= dst.y) {
+		over_item = Mines_text_input;
+		if (current_text_input_field == nothing) {
+			dst1 = { int(SCREEN_WIDTH / 3 * 2), int(SCREEN_HEIGHT / 4) + int(SCREEN_HEIGHT / 6), int(SCREEN_WIDTH / 3), 3 };
+			SDL_RenderCopy(renderer, textures, &src, &dst1);
+		}
+	}
 
 	dst = { int(SCREEN_WIDTH / 2) - int(SCREEN_HEIGHT / 6 / 2 * 5 / 2 / 1.5), int(SCREEN_HEIGHT / 2), int(SCREEN_HEIGHT / 6 / 2 * 5 / 1.5), int(SCREEN_HEIGHT / 6 / 2 / 1.5) };
 	Letter_Renderer("Sound", &dst);
@@ -162,7 +238,6 @@ void Menu::Settings_Renderer() {
 	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE / 20};
 	dst = { int(SCREEN_WIDTH / 4), int(SCREEN_HEIGHT / 1.65), int(SCREEN_WIDTH / 2), int(SCREEN_HEIGHT / 100) };
 	SDL_RenderCopy(renderer, textures, &src, &dst);
-
 
 	dst = { int(SCREEN_WIDTH / 4), int(SCREEN_HEIGHT / 1.7), int(SCREEN_WIDTH / 2), int(SCREEN_HEIGHT / 25) };
 	if (x <= dst.x + dst.w && x >= dst.x && y <= dst.y + dst.h && y >= dst.y)
@@ -194,7 +269,7 @@ void Menu::Settings_Renderer() {
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
 	dst = { int(SCREEN_WIDTH / 6), int(SCREEN_HEIGHT / 1.33), int(SCREEN_WIDTH / 3), int(SCREEN_HEIGHT / 9) };
-	Letter_Renderer("Window", &dst);
+	Letters_Padded_Renderer("window", &dst, 46);
 			
 	dst = { int(SCREEN_WIDTH / 6 + SCREEN_WIDTH / 3), int(SCREEN_HEIGHT / 1.33), int(SCREEN_WIDTH / 3), int(SCREEN_HEIGHT / 9) };
 	if (x <= dst.x + dst.w && x >= dst.x && y <= dst.y + dst.h && y >= dst.y)
@@ -217,17 +292,18 @@ void Menu::Settings_Renderer() {
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
 	dst = { int(SCREEN_WIDTH / 6 + SCREEN_WIDTH / 3), int(SCREEN_HEIGHT / 1.33), int(SCREEN_WIDTH / 3), int(SCREEN_HEIGHT / 9) };
-	Letter_Renderer("Fullscreen", &dst);
+	Letters_Padded_Renderer("fullscreen", &dst, 15);	
+		
 	
 
 	if (SCREEN_WIDTH >= SCREEN_HEIGHT) {
-		dst = { int(SCREEN_HEIGHT / 6 + SCREEN_HEIGHT / 6 / 20 * 3 * 2), int(SCREEN_HEIGHT / 6 / 3.5), int(SCREEN_HEIGHT / 6 / 2 * 7), int(SCREEN_HEIGHT / 6 / 2) };
-		Letter_Renderer("Settings", &dst);
+		/*dst = { int(SCREEN_HEIGHT / 6 + SCREEN_HEIGHT / 6 / 20 * 3 * 2), int(SCREEN_HEIGHT / 6 / 3.5), int(SCREEN_HEIGHT / 6 / 2 * 7), int(SCREEN_HEIGHT / 6 / 2) };
+		Letter_Renderer("Settings", &dst);*/
 
 
 	} else {
-		dst = { int(SCREEN_HEIGHT / 6 + SCREEN_HEIGHT / 6 / 20 * 3 * 2), int(SCREEN_HEIGHT / 6 / 3.5), int(SCREEN_WIDTH / 6 / 2 * 7), int(SCREEN_HEIGHT / 6 / 2) };
-		Letter_Renderer("Settings", &dst);
+		/*dst = { int(SCREEN_HEIGHT / 6 + SCREEN_HEIGHT / 6 / 20 * 3 * 2), int(SCREEN_HEIGHT / 6 / 3.5), int(SCREEN_WIDTH / 6 / 2 * 7), int(SCREEN_HEIGHT / 6 / 2) };
+		Letter_Renderer("Settings", &dst);*/
 
 
 	}
@@ -377,7 +453,55 @@ void Menu::Gamepad_Control(Uint8 button) {
 }
 
 void Menu::Keyboard_Control(SDL_Keycode button) {
-
+	switch (button)
+	{
+	case SDLK_RETURN:
+		if (text_input != NULL) {
+			switch (current_text_input_field) {
+			case Width_text_input:
+				playing_field_width = text_input->Value();
+				break;
+			case Height_text_input:
+				playing_field_height = text_input->Value();
+				break;
+			case Mines_text_input:
+				number_of_mines_ = text_input->Value();
+				break;
+			}
+			text_input->~Text_Input();
+			text_input = NULL;
+			current_text_input_field = nothing;
+		}
+		break;
+	case SDLK_ESCAPE:
+		if (text_input != NULL) {
+			switch (current_text_input_field) {
+			case Width_text_input:
+				playing_field_width = text_input->Value();
+				break;
+			case Height_text_input:
+				playing_field_height = text_input->Value();
+				break;
+			case Mines_text_input:
+				number_of_mines_ = text_input->Value();
+				break;
+			}
+			text_input->~Text_Input();
+			text_input = NULL;
+			current_text_input_field = nothing;
+		} else {
+			switch (item)
+			{
+			case Main_Menu:
+				item = Exit;
+				break;
+			case Settings:
+				item = Main_Menu;
+				break;
+			}
+		}
+		break;
+	}
 }
 
 void Menu::Mouse_Control(Uint8 button) {
@@ -415,22 +539,53 @@ void Menu::Mouse_Control(Uint8 button) {
 			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 			break;
 		}
+		case Width_text_input: {
+			if (text_input == NULL) {
+				text_input = new Text_Input(playing_field_width);
+				current_text_input_field = Width_text_input;
+			}
+			break;
+		}
+		case Height_text_input: {
+			if (text_input == NULL) {
+				text_input = new Text_Input(playing_field_height);
+				current_text_input_field = Height_text_input;
+			}
+			break;
+		}
+		case Mines_text_input: {
+			if (text_input == NULL) {
+				text_input = new Text_Input(number_of_mines_);
+				current_text_input_field = Mines_text_input;
+			}
+			break;
+		}
+		case nothing: {
+			if (text_input != NULL) {				
+				switch (current_text_input_field) {
+				case Width_text_input:					
+					playing_field_width = text_input->Value();
+					break;
+				case Height_text_input:
+					playing_field_height = text_input->Value();
+					break;
+				case Mines_text_input:
+					number_of_mines_ = text_input->Value();
+					break;
+				}
+				text_input->~Text_Input();
+				text_input = NULL;		
+				current_text_input_field = nothing;
+			}
+			break;
+		}
 		}	
-	
 }
 
 void Menu::Menu_Navigation(int x_pos, int y_pos) {
 	if (keyboard)
 		item = over_item;	
 }
-
-//void Menu::Click(function<void> func(int, int)) {
-//	// Получение координат мыши //
-//
-//	int x_pos = 0, y_pos = 0;
-//	SDL_GetMouseState(&x_pos, &y_pos);
-//	func(x_pos, y_pos);
-//}
 
 void Menu::Start_game() {
 	
@@ -459,9 +614,13 @@ void Menu::Start_game() {
 			avgFPS = 0;
 		}		
 
-		this->Menu_renderer();
+		this->Menu_renderer();		
 
 		while (SDL_PollEvent(&e) != 0) {
+
+			//  //
+			if (this->text_input != NULL)
+				this->text_input->Handle_Input(e);
 
 			// Общие ивенты //
 			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
@@ -534,89 +693,96 @@ void Menu::Start_game() {
 
 RESTART:
 
-	restart = false;
-	lose = false;
+	if (!quit) {
+		if (playing_field_height * playing_field_width < number_of_mines_) {
+			cout << endl << "Too many mines";
 
-	Playing_field* field = new Playing_field;
+			while (playing_field_height* playing_field_width <= number_of_mines_)
+				number_of_mines_ /= 5;
+		}			
 
-	if (!quit)
-		field->Field_Render(true);	
+		restart = false;
+		lose = false;
 
-	countedFrames = 0;
-	fpsTimer.start();
-		
-	while (!quit && !lose && !restart) {
-		
-		capTimer.start();
-
-		float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
-		if (avgFPS > 1000) {
-			avgFPS = 0;
-		}
+		Playing_field* field = new Playing_field;
 
 		field->Field_Render(true);
 
-		while (SDL_PollEvent(&e) != 0) {
+		countedFrames = 0;
+		fpsTimer.start();
 
-			// Общие ивенты //
-			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)				
-					field->Window_update(e);		
-			
-			if (e.type == SDL_QUIT)
-				quit = true;
+		while (!quit && !lose && !restart) {
 
-			if (e.button.type == SDL_MOUSEBUTTONUP) 
-				field->Mouse_Control(e.button.button);
-			
-			// Проверка нажатий клавиатуры //
-			if (keyboard) {
-				if (e.cdevice.type == SDL_CONTROLLERDEVICEADDED) {
-					if (game_controller == nullptr)
-						game_controller = SDL_GameControllerOpen(0);
-					keyboard = false;
+			capTimer.start();
+
+			float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
+			if (avgFPS > 1000) {
+				avgFPS = 0;
+			}
+
+			field->Field_Render(true);
+
+			while (SDL_PollEvent(&e) != 0) {
+
+				// Общие ивенты //
+				if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+					field->Window_update(e);
+
+				if (e.type == SDL_QUIT)
+					quit = true;
+
+				if (e.button.type == SDL_MOUSEBUTTONUP)
+					field->Mouse_Control(e.button.button);
+
+				// Проверка нажатий клавиатуры //
+				if (keyboard) {
+					if (e.cdevice.type == SDL_CONTROLLERDEVICEADDED) {
+						if (game_controller == nullptr)
+							game_controller = SDL_GameControllerOpen(0);
+						keyboard = false;
+					}
+
+					if (e.cbutton.type == SDL_CONTROLLERBUTTONUP)
+						keyboard = false;
+
+					if (e.key.type == SDL_KEYUP)
+						field->Keyboard_Control(e.key.keysym.sym);
+
+					// Проверка нажатий геймпада //
 				}
+				else {
+					if (e.key.type == SDL_KEYUP)
+						keyboard = true;
 
-				if (e.cbutton.type == SDL_CONTROLLERBUTTONUP) 
-					keyboard = false;					
+					if (e.cbutton.type == SDL_CONTROLLERBUTTONDOWN)
+						field->Gamepad_Control(e.cbutton.button);
 
-				if (e.key.type == SDL_KEYUP)
-					field->Keyboard_Control(e.key.keysym.sym);
 
-				// Проверка нажатий геймпада //
+				}
 			}
-			else {
-				if (e.key.type == SDL_KEYUP)
-					keyboard = true;
+			++countedFrames;
 
-				if (e.cbutton.type == SDL_CONTROLLERBUTTONDOWN)
-					field->Gamepad_Control(e.cbutton.button);
-				
-									
+			int frameTicks = capTimer.getTicks();
+			if (frameTicks < SCREEN_TICKS_PER_FRAME) {
+				SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
 			}
 		}
-		++countedFrames;
 
-		int frameTicks = capTimer.getTicks();
-		if (frameTicks < SCREEN_TICKS_PER_FRAME) {
-			SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
+		fpsTimer.stop();
+		capTimer.stop();
+
+		if (lose)
+			cout << endl << "You are loser!";
+
+		if (lose || restart)
+			field->~Playing_field();
+
+		if (restart && !quit) {
+			cout << endl << "RESTART!";
+			//field->~Playing_field();
+			goto RESTART;
 		}
 	}
-
-	fpsTimer.stop();
-	capTimer.stop();
-	
-	if (lose)
-		cout << endl << "You are loser!";
-
-	if (lose || restart) 
-		field->~Playing_field();					
-
-	if (restart && !quit) {
-		cout << endl << "RESTART!";
-		//field->~Playing_field();
-		goto RESTART;
-	}
-		
 
 	SDL_GameControllerClose(game_controller);
 }
@@ -627,22 +793,9 @@ RESTART:
 
 Playing_field::Playing_field() {
 
-	ifstream settings_file;
-
-	// Загрузка настроек из файла //
-
-	settings_file.open("settings.json");
-	if (!settings_file.is_open())
-		cout << endl << "Error to open file \"settings.json \"";
-
-	auto settings = json::parse(settings_file);
-	settings_file.close();
-
-	// Загрузка в оперативную память изображений из файлов //
-
-	width = settings.at("widthOfPlayingField").get<int>();
-	height = settings.at("heightOfPlayingField").get<int>();	
-	number_of_mines = settings.at("numberOfMines").get<int>();
+	width = playing_field_width;
+	height = playing_field_height;
+	number_of_mines = number_of_mines_;
 	
 	textures = Image_Load("assets\\textures.png");
 	shaded_textures = Image_Load("assets\\textures.png");
@@ -668,15 +821,18 @@ Playing_field::Playing_field() {
 
 	// Инициализация массивов //
 
-	mines_and_numbers = new signed char* [width];
+	mines_and_numbers = new short int* [width];
 	open_cells = new bool* [width];
 	player_interaction = new bool* [width];
-
+	
 	for (int i = 0; i < width; i++) {
-		*(mines_and_numbers + i) = new signed char[height];
+		*(mines_and_numbers + i) = new short int[height];
 		*(open_cells + i) = new bool[height];
 		*(player_interaction + i) = new bool[height];
 	}
+
+	arrayLOL = { {-1, -1}, { 0,-1 }, { 1,-1 }, { -1,0 }, { 1,0 }, { -1,1 }, { 0,1 }, { 1,1 } };
+	arrayKEK = { {0, 0}, { -2,0 }, { signed char(width - 1),0 }, { 0,-2 }, { signed char(width - 1),-2 }, { 0, signed char(height - 1) }, { -2, signed char(height - 1) }, { signed char(width - 1), signed char(height - 1) } };
 
 	// Инициализация массивов "нулями" //
 
@@ -684,7 +840,7 @@ Playing_field::Playing_field() {
 		for (int j = 0; j < width; j++) {
 			open_cells[j][i] = false;
 			player_interaction[j][i] = false;
-			mines_and_numbers[j][i] = 0;
+			mines_and_numbers[j][i] = NULL;
 		}
 
 	int temp = number_of_mines;
@@ -702,6 +858,7 @@ Playing_field::Playing_field() {
 					if (temp2 > number_of_mines / height * 1.5)
 						break;
 					mines_and_numbers[j][i] = -1;
+					
 					temp -= 1;
 					temp2 += 1;
 					//cout << endl << i << " and " << j;
@@ -713,10 +870,7 @@ Playing_field::Playing_field() {
 	EXIT:
 
 	// Расстановка количества окружающих клетку бомб //
-
-	int arrayLOL[8][2] = { {-1,-1},	{0,-1},	{1,-1},		{-1,0}, {1,0},		 {-1,1},		{0,1},			{1,1} };
-	int arrayKEK[8][2] = { {0,0},	{-2,0}, {width-1,0},	{0,-2}, {width-1,-2},	 {0,height-1},	{-2,height-1},	{width-1,height-1} };
-
+	
 	for (int i = 0; i < height; i++)
 		for (int j = 0; j < width; j++) 
 			if (mines_and_numbers[j][i] == -1)
@@ -729,13 +883,14 @@ Playing_field::Playing_field() {
 
 	// Единоразовое открытие первой попавшейся клетки с нулевым количеством окружающих бомб //
 
-	for (int i = 0; i < height; i++)
+	/*for (int i = 0; i < height; i++)
 		for (int j = 0; j < width; j++)
 			if (mines_and_numbers[j][i] == 0) {
 				Cell_Opening(j, i);
 				goto EXIT2;
 			}
-	EXIT2:
+	EXIT2:*/
+		
 	
 	time_from_start = SDL_GetTicks();
 }
@@ -852,7 +1007,7 @@ void Playing_field::Window_update(SDL_Event &e) {
 void Playing_field::Show_mines_to_console() {
 	// Вывод значений всех ячеек поля в консоль //
 	
-	cout << endl << "Playing field: " << endl;
+	cout << endl << "Playing field[" << width << "][" << height << "]: " << endl;
 	for (int i = 0; i < height; i++)
 		for (int j = 0; j < width; j++) {
 			if (mines_and_numbers[j][i] > -1)
@@ -922,7 +1077,7 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 	SDL_Rect dst = { x + pos_x * cell_size, y + pos_y * cell_size, cell_size, cell_size };
 	SDL_Rect src;
 		
-	if (!open_cells[pos_x][pos_y]) {
+	if (!open_cells[pos_x][pos_y] && !lose) {
 		// Рендер клетки //	
 		src = { 0, 0, ICONS_SIZE, ICONS_SIZE };
 		SDL_RenderCopy(renderer, textures, &src, &dst);
@@ -935,62 +1090,83 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 	} else {
 		// Рендер подложки клетки //
 		src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
-		SDL_RenderCopy(renderer, textures, &src, &dst);		
-
-		// Рендер мин и флагов (для проигрыша) //
-		if (mines_and_numbers[pos_x][pos_y] == -1) {
-			src = { 3*ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
-			dst = { x + pos_x * cell_size, y + pos_y * cell_size, cell_size, cell_size };
-			SDL_RenderCopy(renderer, textures, &src, &dst);
-		}			
-		if (player_interaction[pos_x][pos_y] && !render_numbers) {
-			src = { 2*ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
-			SDL_RenderCopy(renderer, textures, &src, &dst);
-		}
+		SDL_RenderCopy(renderer, textures, &src, &dst);
 
 		// Рендер чисел открытых клеток //
 		if (mines_and_numbers[pos_x][pos_y] > 0 && render_numbers) {
 			dst = { x + pos_x * cell_size + int(cell_size * 0.22), y + pos_y * cell_size + int(cell_size * 0.23), int(cell_size * 0.625), int(cell_size * 0.625) };
 			SDL_RenderCopy(renderer, ((mines_and_numbers[pos_x][pos_y] > 4 ? black_numbers : numbers) + mines_and_numbers[pos_x][pos_y])->texture, NULL, &dst);
-		}			
+		}
+		// Рендер мин и флагов (для проигрыша) //
+		if (lose) {
+			if (mines_and_numbers[pos_x][pos_y] == -1) {
+				src = { 3 * ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
+				dst = { x + pos_x * cell_size, y + pos_y * cell_size, cell_size, cell_size };
+				SDL_RenderCopy(renderer, textures, &src, &dst);
+			}
+			if (player_interaction[pos_x][pos_y] && !render_numbers) {
+				src = { 2 * ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
+				SDL_RenderCopy(renderer, textures, &src, &dst);
+			}
+		} 						
 	} 	
 }
 
-void Playing_field::Cell_Opening(int x_pos, int y_pos) {
-	
-	// Проверка клетки на наличие "флага" //
+	unsigned int HOW_MANY = NULL;	
 
-	if (player_interaction[x_pos][y_pos] == false) {
+	list<vector<signed char>> Queue;
+
+	void Playing_field::Cell_Opening(signed char x_pos, signed char y_pos) {
+
+		// Проверка клетки на наличие "флага" //
 		
-		// Клик на мину => проигрыш //
-		
-		if (mines_and_numbers[x_pos][y_pos] == -1) {
-			lose = true;
-			return;
-		}
 
-		// Открытие ячейки и проигрывание анимации //
+		if (player_interaction[x_pos][y_pos] == false && open_cells[x_pos][y_pos] == false) {
 
-		if (open_cells[x_pos][y_pos] == false) {
-			open_cells[x_pos][y_pos] = true;
-			//Opening_Animation(x_pos, y_pos);
-		}
+			// Открытие прилегающий клеток, если рядом с текущей клеткой нет бомб //
 
-		// Открытие прилегающий клеток, если рядом с текущей клеткой нет бомб //
+			if (mines_and_numbers[x_pos][y_pos] == 0) {
 
-		if (mines_and_numbers[x_pos][y_pos] == 0) {
+				Queue.push_back({ x_pos, y_pos });				
 
-			int arrayLOL[8][2] = { {-1,-1},	{0,-1},	{1,-1},		{-1,0}, {1,0},		 {-1,1},		{0,1},			{1,1} };
-			int arrayKEK[8][2] = { {0,0},	{-2,0}, {width - 1,0},	{0,-2}, {width - 1,-2},	 {0,height - 1},	{-2,height - 1},	{width - 1,height - 1} };
+				while (Queue.size() != 0) {					
 
-			for (int k = 0; k < 8; k++)
-				if (x_pos != arrayKEK[k][0] && y_pos != arrayKEK[k][1])
-					if (open_cells[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] == false)
-						if (mines_and_numbers[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] != -1)
-							Cell_Opening(x_pos + arrayLOL[k][0], y_pos + arrayLOL[k][1]);
+					NULL_Opening();					
+					Queue.pop_front();			
+				}
+			}
+			else if (open_cells[x_pos][y_pos] == false && mines_and_numbers[x_pos][y_pos] != -1) {
+				// Открытие ячейки и проигрывание анимации //
+
+				open_cells[x_pos][y_pos] = true;
+				//Opening_Animation(x_pos, y_pos);
+			}
+			else {
+				// Клик на мину => проигрыш //
+
+				lose = true;
+				return;
+			}
 		}
 	}
-}
+
+	void Playing_field::NULL_Opening() {		
+		
+		signed char x_pos = Queue.front()[0];
+		signed char y_pos = Queue.front()[1];		
+
+		if (mines_and_numbers[x_pos][y_pos] == 0)
+			if (open_cells[x_pos][y_pos] == false)
+				for (int k = 0; k < 8; k++)
+					if (x_pos != arrayKEK[k][0] && y_pos != arrayKEK[k][1])
+						if (open_cells[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] == false)
+							if (mines_and_numbers[x_pos + arrayLOL[k][0]][y_pos + arrayLOL[k][1]] != -1) {
+								Queue.push_back({ x_pos + arrayLOL[k][0], y_pos + arrayLOL[k][1] });
+							}	
+
+		open_cells[Queue.front()[0]][Queue.front()[1]] = true;		
+	}
+
 
 void Playing_field::Flag_setter(int x_pos, int y_pos) {
 	// Установка флага //

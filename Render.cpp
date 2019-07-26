@@ -51,3 +51,49 @@ void Letter_Renderer(string str, SDL_Rect* dst) {
 		dst_t.x += dst_t.w;
 	}	
 }
+
+void Letters_Scaled_Renderer(string str, SDL_Rect* dst, float percentage) {
+
+	SDL_Rect dst_t;
+		
+	dst_t.h = int(float(dst->h) * percentage / 100.0f);
+	dst_t.y = dst->y + int(dst->h / 2 - dst_t.h / 2);
+	dst_t.w = dst_t.h * str.size() * 0.95;
+	dst_t.x = dst->x - int((dst_t.w - dst->w) / 2);
+
+	dst_t.w /= str.size();
+	
+	for (auto i : str) {
+		SDL_RenderCopy(renderer, i == ' ' ? NULL : (alphabet + int(i - '0'))->texture, NULL, &dst_t);
+		dst_t.x += dst_t.w;
+	}
+}
+
+void Letters_Padded_Renderer(string str, SDL_Rect* dst, float percentage_padding) {
+
+	if (str.size() > 0) {
+		SDL_Rect dst_t;
+		float percentage;
+
+		if ((float(dst->w) * (100 - percentage_padding) / 100.0f / (str.size() * 0.95)) <= (dst->h * (100 - percentage_padding) / 100.0f)) {
+			dst_t.h = float(dst->w) * (100 - percentage_padding) / 100.0f / (str.size() * 0.95);
+		} else {
+			dst_t.h = dst->h * (100 - percentage_padding) / 100.0f;
+		}			
+
+		dst_t.y = dst->y + int(dst->h / 2 - dst_t.h / 2);
+		dst_t.w = dst_t.h * str.size() * 0.95;
+		dst_t.x = dst->x - int((dst_t.w - dst->w) / 2);
+
+		dst_t.w /= str.size();
+
+		for (auto i : str) {
+			if (i == ' ')
+				dst_t.x += dst_t.w;
+
+			SDL_RenderCopy(renderer, i == ' ' ? NULL : (alphabet + int(i - '0'))->texture, NULL, &dst_t);
+			dst_t.x += dst_t.w;
+		}
+	}	
+}
+

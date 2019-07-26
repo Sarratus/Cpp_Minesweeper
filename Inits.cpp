@@ -1,9 +1,13 @@
 #include <iostream>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <SDL_ttf.h>
 #include "Vars.h"
 #include "Classes.h"
+
+using json = nlohmann::json;
 
 void Init() {
 	cout << "Init start..." << endl;
@@ -43,9 +47,52 @@ void Init() {
 
 		alphabet[i].Init(st, *(temp), 50);
 	}
+
+	ifstream settings_file;
+
+	// Загрузка настроек из файла //
+
+	settings_file.open("settings.json");
+	if (!settings_file.is_open())
+		cout << endl << "Error to open file \"settings.json \"";
+
+	auto settings = json::parse(settings_file);
+	settings_file.close();
+
+	// Загрузка в оперативную память данных из файла //
+
+	playing_field_width = settings.at("widthOfPlayingField").get<int>();
+	playing_field_height = settings.at("heightOfPlayingField").get<int>();
+	number_of_mines_ = settings.at("numberOfMines").get<int>();
 }
 
 void Close() {
+
+	arrayLOL.~vector();
+	arrayKEK.~vector();
+	
+	ifstream settings_file_i;
+
+	// Загрузка настроек из файла //
+
+	settings_file_i.open("settings.json");
+	if (!settings_file_i.is_open())
+		cout << endl << "Error to open file \"settings.json \"";
+
+	auto settings = json::parse(settings_file_i);
+	settings_file_i.close();
+
+	// Загрузка в оперативную память данных из файла //
+	settings.at("widthOfPlayingField") = playing_field_width;
+	settings.at("heightOfPlayingField") = playing_field_height;
+	settings.at("numberOfMines") = number_of_mines_;
+
+	ofstream settings_file_o;
+	settings_file_o.open("settings.json");
+	
+	settings_file_o << settings;
+
+	settings_file_o.close();
 
 	for (auto i = 0; i < 5; i++)
 		(numbers + i)->~Text_render();
@@ -64,4 +111,5 @@ void Close() {
 	SDL_Quit();
 
 	cout << endl << endl << "Program was close" << endl;
+
 }

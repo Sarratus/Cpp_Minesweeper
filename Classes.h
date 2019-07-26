@@ -24,11 +24,39 @@ enum Game_Menu {
 	Exit,
 
 	Back = 20,
+	Height_text_input,
+	Width_text_input,
+	Mines_text_input,
 	Sound_Changer,
 	Window,
 	Fullscreen,
 
 	nothing = 100
+};
+
+class Text_Input
+{
+public:
+	Text_Input(int a);
+	~Text_Input();
+
+	//void Init(int a, SDL_Rect destination);
+
+	int Value() { 
+		if (input_text.size() > 0 && stoi(input_text) > 0) {
+			return stoi(input_text);
+		} else {
+			return 1;
+		}			
+	}
+
+	void Handle_Input(SDL_Event e);
+	void Text_Render(SDL_Rect* dst, int padding);
+
+private:
+	string input_text;
+
+	SDL_Rect dst = { 0, 0, 0, 0 };
 };
 
 class Menu
@@ -47,9 +75,9 @@ public:
 
 	void Start_game();
 
-	//void Click(function<void> func(int, int));
-
 	void Menu_Navigation(int x_pos, int y_pos);
+
+	Text_Input* text_input = NULL;
 
 private:
 	void Main_Menu_Renderer();
@@ -61,6 +89,7 @@ private:
 
 	Game_Menu over_item;
 	Game_Menu item;
+	Game_Menu current_text_input_field;
 
 	SDL_Texture* textures = nullptr;
 };
@@ -81,12 +110,12 @@ public:
 	void Keyboard_Control(SDL_Keycode button);
 	void Mouse_Control(Uint8 button);
 		
-private:
-	//void Opening_Animation(int x_pos, int y_pos);
+private:	
 	void Cell_Render(int pos_x, int pos_y, bool render_numbers);
 	void Cell_Lighter(int x_pos, int y_pos);
 	
-	void Cell_Opening(int x_pos, int y_pos);
+	void Cell_Opening(signed char x_pos, signed char y_pos);
+	void NULL_Opening();
 	void Flag_setter(int x_pos, int y_pos);
 
 	void Left_Click();
@@ -94,7 +123,7 @@ private:
 
 	void Win();
 
-	signed char**	mines_and_numbers	=	nullptr;
+	short int**	mines_and_numbers	=	nullptr;
 	bool**	open_cells		=	nullptr;
 	bool**	player_interaction	=	nullptr;
 	
@@ -116,21 +145,6 @@ private:
 	
 	unsigned short int number_of_mines = NULL;
 	unsigned short int number_of_flags = NULL;	
-};
-
-class Text_Input
-{
-public:
-	Text_Input(int a, SDL_Rect destination);
-	~Text_Input();	
-
-	void Handle_Input();
-	void Text_Render();
-
-private:
-	string input_text;	
-
-	SDL_Rect dst = { 0, 0, 0, 0 };
 };
 
 class Text_render

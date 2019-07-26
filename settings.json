@@ -1,5 +1,1 @@
-{
-	"widthOfPlayingField": 9,
-	"heightOfPlayingField": 9,
-	"numberOfMines": 10
-}
+{"heightOfPlayingField":99,"numberOfMines":99,"widthOfPlayingField":99}
