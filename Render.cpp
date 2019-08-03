@@ -88,8 +88,7 @@ void Letters_Padded_Renderer(string str, SDL_Rect* dst, float percentage_padding
 		dst_t.w /= str.size();
 
 		for (auto i : str) {
-			if (i == ' ')
-				dst_t.x += dst_t.w;
+			
 
 			SDL_RenderCopy(renderer, i == ' ' ? NULL : (alphabet + int(i - '0'))->texture, NULL, &dst_t);
 			dst_t.x += dst_t.w;

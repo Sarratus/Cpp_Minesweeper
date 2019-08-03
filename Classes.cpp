@@ -408,18 +408,51 @@ void Menu::Main_Menu_Renderer() {
 void Menu::Window_update(SDL_Event &e) {	
 	// Установка "нормальных" размеров окна при "нестандартном масштабировании" //
 
+	// Установка "нормальных" размеров окна при "нестандартном масштабировании" //
+
+
+
 	if (e.window.data1 > e.window.data2 * 2.1 || e.window.data2 > e.window.data1 * 2.1) {
 		if (e.window.data1 == SCREEN_WIDTH) {
-			SCREEN_HEIGHT = SCREEN_WIDTH / 2.1;
+			if (SCREEN_HEIGHT > e.window.data2) {
+				SCREEN_HEIGHT = SCREEN_WIDTH / 2;
+			}
+			else {
+				SCREEN_HEIGHT = SCREEN_WIDTH * 2;
+			}
 		}
 		else if (e.window.data2 == SCREEN_HEIGHT) {
-			SCREEN_WIDTH = SCREEN_HEIGHT / 2;
+			if (SCREEN_WIDTH > e.window.data1) {
+				SCREEN_WIDTH = SCREEN_HEIGHT / 2;
+			}
+			else {
+				SCREEN_WIDTH = SCREEN_HEIGHT * 2;
+			}
 		}
+		if (e.window.data1 < 450)
+			SCREEN_WIDTH = 450;
+
+		if (e.window.data2 < 450)
+			SCREEN_HEIGHT = 450;
+
 		SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
 		//cout << endl << "Are you yebok? O_o";
-	} else {
+	}
+	else {
 		SCREEN_WIDTH = e.window.data1;
 		SCREEN_HEIGHT = e.window.data2;
+
+		if (e.window.data1 < 450) {
+			SCREEN_WIDTH = 450;
+			SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+
+
+		if (e.window.data2 < 450) {
+			SCREEN_HEIGHT = 450;
+			SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+
 	}
 	
 	this->Menu_renderer();
@@ -500,6 +533,10 @@ void Menu::Keyboard_Control(SDL_Keycode button) {
 				break;
 			}
 		}
+		break;
+	case SDLK_PLUS:
+		//if (KMOD_CTRL)
+		
 		break;
 	}
 }
@@ -711,6 +748,9 @@ RESTART:
 		countedFrames = 0;
 		fpsTimer.start();
 
+		LTimer TEMP;
+		TEMP.start();
+
 		while (!quit && !lose && !restart) {
 
 			capTimer.start();
@@ -745,9 +785,50 @@ RESTART:
 					if (e.cbutton.type == SDL_CONTROLLERBUTTONUP)
 						keyboard = false;
 
-					if (e.key.type == SDL_KEYUP)
+					
+
+					
+					
+					if (TEMP.getTicks() >= 100) {
+					if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_P]) {						
+							field->Scale_Changer(false, 5);
+
+					} else if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_O]) {						
+							field->Scale_Changer(true, 5);							
+
+					} else if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_UP]) {
+						field->Field_Moving(0, SCREEN_HEIGHT / 20);
+
+					} else if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_DOWN]) {
+						field->Field_Moving(0, -SCREEN_HEIGHT / 20);
+
+					} else if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_LEFT]) {
+						field->Field_Moving(SCREEN_HEIGHT / 20, 0);
+
+					} else if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_RIGHT]) {
+						field->Field_Moving(-SCREEN_HEIGHT / 20, 0);
+					}
+					TEMP.start();
+					} 
+					
+					if (e.key.type == SDL_KEYUP) {
 						field->Keyboard_Control(e.key.keysym.sym);
 
+						if (e.key.keysym.sym == SDLK_o) {
+							//field->Scale_Changer(true, 5);
+						} else if (e.key.keysym.sym == SDLK_p) {
+							//field->Scale_Changer(false, 5);
+						} else if (e.key.keysym.sym == SDLK_UP) {
+							field->Field_Moving(0, SCREEN_HEIGHT / 20);
+						} else if (e.key.keysym.sym == SDLK_DOWN) {
+							field->Field_Moving(0, -SCREEN_HEIGHT / 20);
+						} else if (e.key.keysym.sym == SDLK_LEFT) {
+							field->Field_Moving(SCREEN_HEIGHT / 20, 0);
+						} else if (e.key.keysym.sym == SDLK_RIGHT) {
+							field->Field_Moving(-SCREEN_HEIGHT / 20, 0);
+						}
+					}	
+					
 					// Проверка нажатий геймпада //
 				}
 				else {
@@ -881,15 +962,27 @@ Playing_field::Playing_field() {
 							mines_and_numbers[j+arrayLOL[k][0]][i+arrayLOL[k][1]] += 1;
 					}
 
-	// Единоразовое открытие первой попавшейся клетки с нулевым количеством окружающих бомб //
+	// Единоразовое открытие первой попавшейся клетки с нулевым (или 1, если 0 нет) количеством окружающих бомб //
 
-	/*for (int i = 0; i < height; i++)
+	bool NULL_opened = false;
+	int temp3 = -1;
+
+	TRY:
+
+	++temp3;
+
+	for (int i = 0; i < height; i++)
 		for (int j = 0; j < width; j++)
-			if (mines_and_numbers[j][i] == 0) {
+			if (mines_and_numbers[j][i] == temp3) {
 				Cell_Opening(j, i);
+				NULL_opened = true;
 				goto EXIT2;
 			}
-	EXIT2:*/
+
+	if (!NULL_opened)
+		goto TRY;
+
+	EXIT2:
 		
 	
 	time_from_start = SDL_GetTicks();
@@ -897,6 +990,19 @@ Playing_field::Playing_field() {
 
 Playing_field::~Playing_field() {
 		
+	// Подгон UI под размер окна
+
+	if (SCREEN_HEIGHT * 0.2 / height <= SCREEN_WIDTH / width) {
+		y = SCREEN_HEIGHT * 0.2;
+		cell_size = SCREEN_HEIGHT * 0.75 / height;
+		x = (-cell_size * width / 2) + (SCREEN_WIDTH / 2);
+	}
+	else {
+		x = SCREEN_WIDTH * 0.05;
+		cell_size = SCREEN_WIDTH * 0.9 / width;
+		y = SCREEN_HEIGHT * 0.2 - cell_size * height + SCREEN_HEIGHT - cell_size * height / 2 + SCREEN_HEIGHT / 2;
+	}
+	
 	// Открытие всех клеток поля для показа местоположения бомб //
 
 	for (int i = 0; i < height; i++)
@@ -967,19 +1073,47 @@ void Playing_field::Window_update(SDL_Event &e) {
 	
 	// Установка "нормальных" размеров окна при "нестандартном масштабировании" //
 	
+	
+
 	if (e.window.data1 > e.window.data2 * 2.1 || e.window.data2 > e.window.data1 * 2.1) {
 		if (e.window.data1 == SCREEN_WIDTH) {
-			SCREEN_HEIGHT = SCREEN_WIDTH / 2.1;					
-
+			if (SCREEN_HEIGHT > e.window.data2) {
+				SCREEN_HEIGHT = SCREEN_WIDTH / 2;
+			} else {
+				SCREEN_HEIGHT = SCREEN_WIDTH * 2;
+			}
 		} else if (e.window.data2 == SCREEN_HEIGHT) {
-			SCREEN_WIDTH = SCREEN_HEIGHT / 2;			
+			if (SCREEN_WIDTH > e.window.data1) {
+				SCREEN_WIDTH = SCREEN_HEIGHT / 2;
+			}
+			else {
+				SCREEN_WIDTH = SCREEN_HEIGHT * 2;
+			}						
 		}		
+		if (e.window.data1 < 450)
+			SCREEN_WIDTH = 450;
+
+		if (e.window.data2 < 450)
+			SCREEN_HEIGHT = 450;
+
 		SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
 		//cout << endl << "Are you yebok? O_o";
 	}
 	else {
 		SCREEN_WIDTH = e.window.data1;
 		SCREEN_HEIGHT = e.window.data2;	
+
+		if (e.window.data1 < 450) {
+			SCREEN_WIDTH = 450;
+			SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+			
+
+		if (e.window.data2 < 450) {
+			SCREEN_HEIGHT = 450;
+			SDL_SetWindowSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+			
 	}
 
 	// Установка размеров пользовательского интерфейса для текущего размера окна //
@@ -995,8 +1129,8 @@ void Playing_field::Window_update(SDL_Event &e) {
 		else {
 			//cout << endl << "x is smaller";
 
-			x = SCREEN_WIDTH * 0.05;
 			cell_size = SCREEN_WIDTH * 0.9 / width;
+			x = (SCREEN_WIDTH - cell_size * width)/2;
 			y = (SCREEN_HEIGHT * 0.2) - (cell_size * height / 2) + (SCREEN_HEIGHT * 0.75 / 2);
 		}
 
@@ -1027,9 +1161,20 @@ void Playing_field::Field_Render(bool render_numbers) {
 	
 	// UI рендерер //
 		// Рендер каждой ячейки поля //
+	
+	/*if ((x + (cell_size * pos_x) > -cell_size) && (x + (cell_size * pos_x) < SCREEN_WIDTH) && (y + (cell_size * pos_y) > -cell_size) && (y + (cell_size * pos_y) < SCREEN_HEIGHT))*/
 
-	for (auto i = 0; i < height; i++)
-		for (auto j = 0; j < width; j++)
+	int x_pos_left, x_pos_right;
+	int y_pos_up, y_pos_down;
+
+	x_pos_left = (x >= 0) ? 0 : ((-x) / cell_size);
+	x_pos_right = (x + (cell_size * width) <= SCREEN_WIDTH) ? width : (width - (x + (cell_size * width) - SCREEN_WIDTH) / cell_size);
+
+	y_pos_up = (y >= 0) ? 0 : ((-y) / cell_size);
+	y_pos_down = (y + (cell_size * height) <= SCREEN_HEIGHT) ? height : (height - (y + (cell_size * height) - SCREEN_HEIGHT) / cell_size);
+	
+	for (auto i = y_pos_up; i < y_pos_down; i++)
+		for (auto j = x_pos_left; j < x_pos_right; j++)
 			Cell_Render(j, i, render_numbers);
 
 		// Рендер верхней панели //
@@ -1044,23 +1189,52 @@ void Playing_field::Field_Render(bool render_numbers) {
 	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 	dst = { x+ int(SCREEN_HEIGHT * 0.16 / 2), int(SCREEN_HEIGHT * 0.15 / 4), int(SCREEN_HEIGHT * 0.15 / 2 * (number_of_mines - number_of_flags > 99 ? 3 : 2)), int(SCREEN_HEIGHT * 0.15 / 2) };
 
+	bool nes = false;
+	bool over_the_edge = false;
+
+	if (dst.x + dst.w > x + width * cell_size - int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3))) {
+		dst.x -= int((dst.x + dst.w - (x + width * cell_size - int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3)))) / 2);
+		nes = true;
+	} else if (dst.x - dst.h < 0) {
+		dst.x = dst.h;
+		over_the_edge = true;
+	}
+
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
-	Numbers_Renderer(number_of_mines - number_of_flags, &dst);
+	Letters_Padded_Renderer(to_string(number_of_mines - number_of_flags), &dst, 25);
 
-	src.x = 60;
-	dst.x = x; dst.w = dst.h;
+	src.x = 3 * ICONS_SIZE;
+	if (nes) {
+		dst.x -= dst.h;
+	} else if (over_the_edge) {
+		dst.x = 0;
+	} else {
+		dst.x = x;
+	}
+
+	dst.w = dst.h;
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
 		// Рендер прошедшего времени с начала раунда //
 
 	src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
-	dst = { x + width * cell_size - int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3) ), int(SCREEN_HEIGHT * 0.15 / 4), int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3)), int(SCREEN_HEIGHT * 0.15 / 2) };
+	
+	if (nes) {
+		dst.x = x + int(SCREEN_HEIGHT * 0.16 / 2) + int(SCREEN_HEIGHT * 0.15 / 2 * (number_of_mines - number_of_flags > 99 ? 3 : 2)) - int((x + int(SCREEN_HEIGHT * 0.16 / 2) + int(SCREEN_HEIGHT * 0.15 / 2 * (number_of_mines - number_of_flags > 99 ? 3 : 2)) - (x + width * cell_size - int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3)))) / 2);
+	} else {
+		dst.x = x + width * cell_size - int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3));
+	}
+
+	dst = { dst.x, int(SCREEN_HEIGHT * 0.15 / 4), int(SCREEN_HEIGHT * 0.15 / 2 * (((SDL_GetTicks() - time_from_start) / 1000) > 999 ? 4 : 3)), int(SCREEN_HEIGHT * 0.15 / 2) };
+
+	if (dst.x + dst.w > SCREEN_WIDTH)
+		dst.x = SCREEN_WIDTH - dst.w;
 
 	SDL_RenderCopy(renderer, textures, &src, &dst);
 
-	Numbers_Renderer((int((SDL_GetTicks() - time_from_start) / 1000) < 9999 ? int((SDL_GetTicks() - time_from_start) / 1000) : 9999 ), &dst);
+	Letters_Padded_Renderer(to_string(int((SDL_GetTicks() - time_from_start) / 1000) < 9999 ? int((SDL_GetTicks() - time_from_start) / 1000) : 9999 ), &dst, 25);
 
 	// Рендер выделения клеток для геймпада //
 
@@ -1072,11 +1246,62 @@ void Playing_field::Field_Render(bool render_numbers) {
 	main_render.unlock();
 }
 
+void Playing_field::Scale_Changer(int new_scale) {
+
+}
+
+int Playing_field::Scale_Changer(bool add, int how_many) {
+	
+	this->cell_size += (this->cell_size * how_many / 100 >= 1) ? (int(this->cell_size * (add ? 1 : -1) * how_many / 100)) : (add ? 1 : -1);
+
+	if (cell_size < 4) {
+		cell_size = 4;
+	} else if (cell_size > 80) {
+		cell_size = 80;
+	}	
+
+	this->Field_Moving(0, 0);
+
+	if (x != (SCREEN_WIDTH - (x + cell_size * width))  &&  (cell_size * width) <= SCREEN_WIDTH) 
+		x = (SCREEN_WIDTH - cell_size * width) / 2;
+	
+	if (y != (SCREEN_HEIGHT - (y + cell_size * height)) && (cell_size * height) <= SCREEN_HEIGHT * 0.85)
+		y = (SCREEN_HEIGHT * 0.15) + ((SCREEN_HEIGHT * 0.85) - cell_size * height) / 2;
+
+	return cell_size;
+}
+
+int Playing_field::Field_Moving(int x_plus, int y_plus) {
+	x += x_plus;
+
+	if (x > SCREEN_WIDTH / 2) {
+		x = SCREEN_WIDTH / 2;
+	} else if (x < -(cell_size * width - SCREEN_WIDTH / 2)) {
+		x = -(cell_size * width - SCREEN_WIDTH / 2);
+	}		
+
+	y += y_plus;
+
+	if (y > SCREEN_HEIGHT / 2) {
+		y = SCREEN_HEIGHT / 2;
+	} else if (y < -(cell_size * height - SCREEN_HEIGHT / 2)) {
+		y = -(cell_size * height - SCREEN_HEIGHT / 2);
+	}
+
+	if (x_plus != 0)
+		return x;
+
+	if (y_plus != 0)
+		return y;
+
+	return 0;
+}
 
 void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
+	
 	SDL_Rect dst = { x + pos_x * cell_size, y + pos_y * cell_size, cell_size, cell_size };
 	SDL_Rect src;
-		
+
 	if (!open_cells[pos_x][pos_y] && !lose) {
 		// Рендер клетки //	
 		src = { 0, 0, ICONS_SIZE, ICONS_SIZE };
@@ -1084,10 +1309,11 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 
 		// Рендер "флага" //
 		if (player_interaction[pos_x][pos_y]) {
-			src = { 2*ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
+			src = { 2 * ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 			SDL_RenderCopy(renderer, textures, &src, &dst);
 		}
-	} else {
+	}
+	else {
 		// Рендер подложки клетки //
 		src = { ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 		SDL_RenderCopy(renderer, textures, &src, &dst);
@@ -1108,11 +1334,9 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 				src = { 2 * ICONS_SIZE, 0, ICONS_SIZE, ICONS_SIZE };
 				SDL_RenderCopy(renderer, textures, &src, &dst);
 			}
-		} 						
-	} 	
+		}
+	}	
 }
-
-	unsigned int HOW_MANY = NULL;	
 
 	list<vector<signed char>> Queue;
 
@@ -1164,7 +1388,9 @@ void Playing_field::Cell_Render(int pos_x, int pos_y, bool render_numbers) {
 								Queue.push_back({ x_pos + arrayLOL[k][0], y_pos + arrayLOL[k][1] });
 							}	
 
-		open_cells[Queue.front()[0]][Queue.front()[1]] = true;		
+		open_cells[Queue.front()[0]][Queue.front()[1]] = true;	
+
+		//this->Field_Render(true);
 	}
 
 
@@ -1204,12 +1430,13 @@ void Playing_field::Flag_setter(int x_pos, int y_pos) {
 void Playing_field::Win() {
 	Field_Render(true);
 
-	SDL_Color win_color = { 20, 20, 22 };
-	Text_render win("You are win!", win_color, 50);
-	
-	SDL_Rect dst = { SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, SCREEN_WIDTH / 2 / 12 };
-	SDL_RenderCopy(renderer, win.texture, NULL, &dst);
+	SDL_Rect src = { ICONS_SIZE + 3, 0, ICONS_SIZE - 6, ICONS_SIZE };
+	SDL_FRect dst1 = { 0, SCREEN_HEIGHT / 2 - SCREEN_HEIGHT / 7 / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 7 };
+	SDL_RenderCopyF(renderer, textures, &src, &dst1);
 
+	SDL_Rect dst = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+	Letters_Padded_Renderer("You are win", &dst, 50);
+	
 	SDL_RenderPresent(renderer);
 
 	LTimer fpsTimer;
@@ -1239,8 +1466,10 @@ void Playing_field::Win() {
 				if (e.window.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
 					this->Window_update(e);
 
-					SDL_Rect dst = { SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2, SCREEN_WIDTH / 2, SCREEN_WIDTH / 2 / 12 };
-					SDL_RenderCopy(renderer, win.texture, NULL, &dst);
+					Field_Render(true);
+
+					SDL_RenderCopyF(renderer, textures, &src, &dst1);
+					Letters_Padded_Renderer("You are winner", &dst, 50);
 
 					SDL_RenderPresent(renderer);
 				}

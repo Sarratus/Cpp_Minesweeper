@@ -109,6 +109,11 @@ public:
 
 	void Keyboard_Control(SDL_Keycode button);
 	void Mouse_Control(Uint8 button);
+
+	void Scale_Changer(int new_scale);
+	int Scale_Changer(bool add, int how_many);
+
+	int Field_Moving(int x_plus, int y_plus);
 		
 private:	
 	void Cell_Render(int pos_x, int pos_y, bool render_numbers);
@@ -134,14 +139,16 @@ private:
 
 	unsigned short int cell_size = NULL;
 	
-	unsigned short int x = NULL;
-	unsigned short int y = NULL;
+	short int x = NULL;
+	short int y = NULL;
 	
 	unsigned int x_cell_controller = NULL;
 	unsigned int y_cell_controller = NULL;
 
 	unsigned short int width = NULL;
 	unsigned short int height = NULL;
+
+	unsigned short int scale = 1;
 	
 	unsigned short int number_of_mines = NULL;
 	unsigned short int number_of_flags = NULL;	
